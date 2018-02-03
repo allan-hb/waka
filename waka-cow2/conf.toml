@@ -1,0 +1,31 @@
+[log]
+log_level = 5
+log_heart = false
+
+[install]
+reset = false
+update = true
+
+#[database]
+#host = "120.78.64.197:3306"
+#user = "root"
+#password = "JGT1STCXBkA3xIww"
+#name = "cow"
+
+[database]
+host = "192.168.100.2:3306"
+user = "root"
+password = "lwzw611116"
+name = "cow2"
+
+[gateway]
+listen4 = "127.0.0.1:9160"
+
+[backend]
+listen4 = "127.0.0.1:9161"
+
+[hall]
+salt = "#22TaGOc7EFKs7@3"
+register_diamonds = 100
+bind_diamonds = 5
+min_player_number = 500

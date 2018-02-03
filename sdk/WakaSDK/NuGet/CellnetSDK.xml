@@ -1,0 +1,261 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>CellnetSDK</name>
+    </assembly>
+    <members>
+        <member name="T:CellnetSDK.Callback">
+            <summary>
+            事件注册器
+            </summary>
+        </member>
+        <member name="M:CellnetSDK.Callback.CallEvent(CellnetSDK.EventQueue,CellnetSDK.Event)">
+            <summary>
+            投递消息
+            </summary>
+            <param name="evq">事件队列</param>
+            <param name="ev">事件</param>
+        </member>
+        <member name="M:CellnetSDK.Callback.RegisterConnectFailed(System.Action)">
+            <summary>
+            注册连接失败事件
+            </summary>
+            <param name="callback">处理函数</param>
+            <returns>注册器</returns>
+        </member>
+        <member name="M:CellnetSDK.Callback.RegisterConnected(System.Action{CellnetSDK.ISession})">
+            <summary>
+            注册连接建立事件
+            </summary>
+            <param name="callback">处理函数</param>
+            <returns>注册器</returns>
+        </member>
+        <member name="M:CellnetSDK.Callback.RegisterClosed(System.Action{CellnetSDK.ISession})">
+            <summary>
+            注册连接关闭事件
+            </summary>
+            <param name="callback">处理函数</param>
+            <returns>注册器</returns>
+        </member>
+        <member name="M:CellnetSDK.Callback.RegisterMessage(System.Type,System.Action{CellnetSDK.ISession,System.UInt32,Google.Protobuf.IMessage,System.Byte[]})">
+            <summary>
+            注册消息事件
+            </summary>
+            <param name="message">消息类型</param>
+            <param name="callback">处理函数</param>
+            <returns>注册器</returns>
+        </member>
+        <member name="T:CellnetSDK.EventType">
+            <summary>
+            事件类型
+            </summary>
+        </member>
+        <member name="F:CellnetSDK.EventType.ConnectFailed">
+            <summary>
+            连接失败
+            </summary>
+        </member>
+        <member name="F:CellnetSDK.EventType.Connected">
+            <summary>
+            连接建立
+            </summary>
+        </member>
+        <member name="F:CellnetSDK.EventType.Closed">
+            <summary>
+            连接关闭
+            </summary>
+        </member>
+        <member name="F:CellnetSDK.EventType.Received">
+            <summary>
+            数据接收
+            </summary>
+        </member>
+        <member name="T:CellnetSDK.Event">
+            <summary>
+            事件
+            </summary>
+        </member>
+        <member name="P:CellnetSDK.Event.Type">
+            <summary>
+            事件类型
+            </summary>
+        </member>
+        <member name="P:CellnetSDK.Event.Session">
+            <summary>
+            会话
+            </summary>
+        </member>
+        <member name="P:CellnetSDK.Event.MessageID">
+            <summary>
+            消息ID
+            </summary>
+        </member>
+        <member name="P:CellnetSDK.Event.Message">
+            <summary>
+            消息
+            </summary>
+        </member>
+        <member name="P:CellnetSDK.Event.RawData">
+            <summary>
+            原始消息
+            </summary>
+        </member>
+        <member name="M:CellnetSDK.Event.NewConnectFailed">
+            <summary>
+            创建连接失败事件
+            </summary>
+            <returns>创建的对象</returns>
+        </member>
+        <member name="M:CellnetSDK.Event.NewConnected(CellnetSDK.ISession)">
+            <summary>
+            创建连接建立事件
+            </summary>
+            <param name="session">会话</param>
+            <returns>创建的对象</returns>
+        </member>
+        <member name="M:CellnetSDK.Event.NewClosed(CellnetSDK.ISession)">
+            <summary>
+            创建连接关闭事件
+            </summary>
+            <param name="session">会话</param>
+            <returns>创建的对象</returns>
+        </member>
+        <member name="M:CellnetSDK.Event.NewReceived(CellnetSDK.ISession,System.UInt32,Google.Protobuf.IMessage,System.Byte[])">
+            <summary>
+            创建数据接收事件
+            </summary>
+            <param name="session">会话</param>
+            <param name="id">消息ID</param>
+            <param name="message">消息</param>
+            <param name="rawData">原始消息</param>
+            <returns>创建的对象</returns>
+        </member>
+        <member name="T:CellnetSDK.EventQueue">
+            <summary>
+            事件队列
+            </summary>
+        </member>
+        <member name="M:CellnetSDK.EventQueue.Post(System.Action)">
+            <summary>
+            投递一个委托到队列中
+            </summary>
+            <param name="action">委托</param>
+        </member>
+        <member name="M:CellnetSDK.EventQueue.Loop">
+            <summary>
+            处理委托队列
+            </summary>
+        </member>
+        <member name="M:CellnetSDK.EventQueue.Clear">
+            <summary>
+            从 EventQueue 中移除所有对象
+            </summary>
+        </member>
+        <member name="T:CellnetSDK.Meta.MessageMeta">
+            <summary>
+            消息元数据
+            </summary>
+        </member>
+        <member name="M:CellnetSDK.Meta.MessageMeta.#ctor(System.String,System.UInt32,System.Type,System.Func{System.Byte[],Google.Protobuf.IMessage})">
+            <summary>
+            构建一个消息元数据
+            </summary>
+            <param name="name">消息名</param>
+            <param name="id">消息ID</param>
+            <param name="type">消息类型</param>
+            <param name="parseFrom">解码器</param>
+        </member>
+        <member name="P:CellnetSDK.Meta.MessageMeta.Name">
+            <summary>
+            消息名
+            </summary>
+        </member>
+        <member name="P:CellnetSDK.Meta.MessageMeta.ID">
+            <summary>
+            消息ID
+            </summary>
+        </member>
+        <member name="P:CellnetSDK.Meta.MessageMeta.Type">
+            <summary>
+            消息类型
+            </summary>
+        </member>
+        <member name="P:CellnetSDK.Meta.MessageMeta.ParseFrom">
+            <summary>
+            解码器
+            </summary>
+        </member>
+        <member name="T:CellnetSDK.Meta.MetaTable">
+            <summary>
+            元数据表
+            </summary>
+        </member>
+        <member name="M:CellnetSDK.Meta.MetaTable.RegisterMessageMeta(System.String,System.UInt32,System.Type,System.Func{System.Byte[],Google.Protobuf.IMessage})">
+            <summary>
+            注册消息元数据
+            </summary>
+            <param name="name">消息名</param>
+            <param name="id">消息ID</param>
+            <param name="type">消息类型</param>
+            <param name="parseFrom">解码器</param>
+        </member>
+        <member name="M:CellnetSDK.Meta.MetaTable.TryGetMessageMetaByID(System.UInt32,CellnetSDK.Meta.MessageMeta@)">
+            <summary>
+            尝试获取消息ID对应的消息元数据
+            </summary>
+            <param name="id">消息ID</param>
+            <param name="meta">元数据</param>
+            <returns>若消息存在则返回true，否则返回false</returns>
+        </member>
+        <member name="M:CellnetSDK.Meta.MetaTable.TryGetMessageMetaByType(System.Type,CellnetSDK.Meta.MessageMeta@)">
+            <summary>
+            尝试获取消息类型对应的消息元数据
+            </summary>
+            <param name="type">消息类型</param>
+            <param name="meta">元数据</param>
+            <returns>若消息存在则返回true，否则返回false</returns>
+        </member>
+        <member name="T:CellnetSDK.ISession">
+            <summary>
+            会话
+            </summary>
+        </member>
+        <member name="M:CellnetSDK.ISession.Send(Google.Protobuf.IMessage)">
+            <summary>
+            发送消息
+            </summary>
+            <param name="v">消息</param>
+        </member>
+        <member name="M:CellnetSDK.ISession.Close">
+            <summary>
+            关闭会话
+            </summary>
+        </member>
+        <member name="M:CellnetSDK.ISession.SessionID">
+            <summary>
+            会话ID
+            </summary>
+            <returns>一个代表会话的长整形数</returns>
+        </member>
+        <member name="T:CellnetSDK.Socket.Connector">
+            <summary>
+            连接器
+            </summary>
+        </member>
+        <member name="M:CellnetSDK.Socket.Connector.#ctor(CellnetSDK.EventQueue,CellnetSDK.Callback)">
+            <summary>
+            创建连接器实例
+            </summary>
+            <param name="evq">事件队列</param>
+            <param name="callback">事件注册器</param>
+        </member>
+        <member name="M:CellnetSDK.Socket.Connector.ConnectAsync(System.String,System.Int32)">
+            <summary>
+            连接指定地址
+            调用函数代表发起一次TCP连接请求
+            </summary>
+            <param name="host">主机地址</param>
+            <param name="port">端口</param>
+        </member>
+    </members>
+</doc>

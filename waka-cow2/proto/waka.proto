@@ -1,0 +1,521 @@
+syntax = "proto3";
+
+package cow_proto;
+
+// @comments 启用游客
+// @receive
+message EnableVisitor {
+    // 是否启用
+    bool enable = 1;
+}
+
+// @comments 微信登录请求
+// @post
+message WechatLogin {
+    // 微信UID
+    string wechat_uid = 1;
+    // 昵称
+    string nickname = 2;
+    // 头像URL
+    string head = 3;
+}
+
+// @comments 令牌登录请求
+// @post
+message TokenLogin {
+    // 令牌
+    string token = 1;
+}
+
+// @comments 登录失败
+// @receive
+message LoginFailed {
+    // 原因
+    // 0 未知
+    // 1 无效 Token
+    int32 reason = 1;
+}
+
+// @comments 登录成功
+// @receive
+message LoginSuccess {
+    // 登录令牌
+    string token = 1;
+}
+
+// --------------------------------------↑登陆消息↑-----------------------------------------
+
+// @comments 设置玩家附加信息请求
+// @rpc response=SetPlayerExtResponse
+message SetPlayerExtRequest {
+    // 微信ID
+    string wechat = 1;
+    // 身份证
+    string idcard = 2;
+    // 姓名
+    string name = 3;
+}
+
+// @comments 设置玩家附加信息结果
+message SetPlayerExtResponse {}
+
+// @comments 拉取玩家头像
+// @rpc response=GetPlayerHeadResponse
+message GetPlayerHeadRequest {
+    // 玩家 ID
+    int32 player_id = 1;
+}
+
+// @comments 拉取玩家头像结果
+message GetPlayerHeadResponse {
+    // 玩家头像
+    string head = 1;
+}
+
+// --------------------------------------↑个人消息↑-----------------------------------------
+
+// @comment 玩家公开信息
+// @receive
+message Player {
+    // 玩家 ID
+    int32 id = 1;
+    // 昵称
+    string nickname = 2;
+    // 微信号
+    string wechat = 3;
+
+    // 登录IP
+    string ip = 4;
+}
+
+// @comments 玩家
+// @receive
+message PlayerSecret {
+    // 玩家主键
+    int32 id = 1;
+    // 昵称
+    string nickname = 2;
+    // 微信号
+    string wechat = 3;
+    // 身份证
+    string idcard = 4;
+    // 姓名
+    string name = 5;
+
+    // 注册时间
+    string created_at = 6;
+
+    // 钻石
+    int32 diamonds = 7;
+
+    // 登录IP
+    string ip = 8;
+}
+
+// @comments 已经进入大厅
+// @receive
+message HallEntered {
+    // 玩家信息
+    PlayerSecret player = 1;
+}
+
+// @comments 推送信息
+// @receive
+message Welcome {
+    // 客服信息
+    message Customer {
+        string name = 1;
+        string wechat = 2;
+    }
+
+    // 客服信息
+    repeated Customer customers = 1;
+    // 滚动公告
+    string notice = 2;
+    // 公告
+    string notice_big = 3;
+    // 支付链接
+    string pay_url = 4;
+    // 后台注册链接
+    string register_url = 5;
+    // 后台登录链接
+    string login_url = 6;
+}
+
+// @comments 在线人数
+// @receive
+message PlayerNumber {
+    // 人数
+    int32 number = 1;
+}
+
+// @comments 是否需要恢复游戏
+// @receive
+message Recover {
+    // 是否需要恢复
+    bool is = 1;
+    // 游戏名称
+    // cow2 牛牛
+    string name = 2;
+}
+
+// --------------------------------------↑大厅消息↑-----------------------------------------
+
+// @comments 房间配置
+message NiuniuRoomOption {
+    // 庄家模式
+    // 0 定庄
+    // 1 轮庄
+    // 2 抢庄
+    int32 banker_mode = 1;
+    // 底分
+    // 1 2 3 5 10 20 30 50
+    int32 score = 2;
+    // 局数
+    // 12 20
+    int32 round_number = 3;
+    // 支付模式
+    // 1 代开支付
+    // 2 AA支付
+    int32 pay_mode = 4;
+    // 模式
+    // 0 普通
+    // 1 疯狂
+    int32 mode = 5;
+    // 特殊牌型
+    // 0 禁用
+    // 1 启用
+    int32 additional_pokers = 6;
+}
+
+// @comments 房间
+message NiuniuRoomData1 {
+    // 玩家
+    message PlayerData {
+        // 玩家
+        Player player = 1;
+        // 位置
+        int32 pos = 2;
+        // 是否准备
+        bool ready = 3;
+        // 是否断线
+        bool lost = 4;
+    }
+
+    // 房间号
+    int32 id = 1;
+    // 房间配置
+    NiuniuRoomOption option = 2;
+    // 创建者
+    Player creator = 3;
+    // 房主
+    Player owner = 4;
+    // 房间玩家
+    repeated PlayerData players = 5;
+    // 是否游戏中
+    bool gaming = 6;
+}
+
+// @comments 查询代开房间
+// @rpc response=NiuniuGetPayForAnotherRoomListResponse
+message NiuniuGetPayForAnotherRoomListRequest {}
+
+// @comments 查询代开房间结果
+message NiuniuGetPayForAnotherRoomListResponse {
+    // 房间
+    repeated NiuniuRoomData1 rooms = 1;
+}
+
+// @comments 创建房间
+// @post
+message NiuniuCreateRoom {
+    // 房间配置
+    NiuniuRoomOption option = 1;
+}
+
+// @comments 创建房间失败
+// @receive
+message NiuniuCreateRoomFailed {
+    // 原因
+    // 0 未知
+    // 1 金币不足
+    // 2 已在房间
+    // 3 配置不合法
+    int32 reason = 1;
+}
+
+// @comments 创建房间成功
+// @receive
+message NiuniuCreateRoomSuccess {}
+
+// @comments 加入房间
+// @post
+message NiuniuJoinRoom {
+    // 房间号
+    int32 room_id = 1;
+}
+
+// @comments 加入房间失败
+// @receive
+message NiuniuJoinRoomFailed {
+    // 原因
+    // 0 未知
+    // 1 金币不足
+    // 2 已在房间
+    // 3 房间不存在
+    // 4 游戏已开始
+    int32 reason = 1;
+}
+
+// @comments 加入房间成功
+// @receive
+message NiuniuJoinRoomSuccess {
+    // 房间信息
+    NiuniuRoomData1 room = 1;
+}
+
+// @comments 离开房间
+// @post
+message NiuniuLeaveRoom {}
+
+// @comments 已离开房间
+// @receive
+message NiuniuLeftRoom {}
+
+// @comments 因房主解散离开了房间
+// @receive
+message NiuniuLeftRoomByDismiss {}
+
+// @comments 房间状态更新
+// @receive
+message NiuniuUpdateRoom {
+    // 房间状态
+    NiuniuRoomData1 room = 1;
+}
+
+// @comments 切换准备/取消
+// @post
+message NiuniuSwitchReady {}
+
+// @comments 解散房间
+// @post
+message NiuniuDismiss {
+    // 房间号
+    int32 room_id = 1;
+}
+
+// @comments 踢人
+// @post
+message NiuniuKickPlayer {
+    // 房间号
+    int32 room_id = 1;
+    // 玩家
+    int32 player_id = 2;
+}
+
+// @comments 倒数计时
+// @receive
+message NiuniuCountdown {
+    // 时间
+    int32 number = 1;
+}
+
+// @comments 开始游戏
+// @post
+message NiuniuStart{}
+
+// @comments 游戏已开始
+// @receive
+message NiuniuStarted{
+    int32 round_number = 1;
+}
+
+// @comments 游戏状态
+message NiuniuRoundStatus {
+    // 玩家游戏数据
+    message PlayerData {
+        // 玩家 ID
+        int32 id = 1;
+        // 得分
+        int32 points = 2;
+        // 已提交是否抢庄
+        bool grab_committed = 3;
+        // 是否抢庄
+        bool grab = 4;
+        // 已提交选择倍率
+        bool rate_committed = 5;
+        // 倍率
+        int32 rate = 6;
+    }
+
+    // 游戏阶段
+    // require_specify_banker       选择庄家
+    // require_grab                 抢庄
+    // grab_animation               抢庄动画
+    // require_specify_rate         选择倍率
+    // round_clear                  小局结算
+    // round_finally                大局结算
+    string step = 1;
+    // 房间 ID
+    int32 room_id = 2;
+    // 当前局数
+    int32 round_number = 3;
+    // 玩家数据
+    repeated PlayerData players = 4;
+    // 本局庄家
+    int32 banker = 5;
+
+    // 手牌
+    repeated string pokers = 6;
+}
+
+// @comments 游戏状态更新
+// @receive
+message NiuniuUpdateRound {
+    // 游戏状态
+    NiuniuRoundStatus round = 1;
+}
+
+// @comments 要求选择庄家
+// @receive
+message NiuniuRequireSpecifyBanker {
+    // 是否是自己操作
+    bool is = 1;
+}
+
+// @comments 选择庄家
+// @post
+message NiuniuSpecifyBanker {
+    // 指定的庄家 ID
+    int32 banker = 1;
+}
+
+// @comments 要求抢庄
+// @receive
+message NiuniuRequireGrab {}
+
+// @comments 抢庄
+// @post
+message NiuniuGrab {
+    // 是否抢庄
+    bool doing = 1;
+}
+
+// @comments 抢庄动画
+// @receive
+message NiuniuGrabAnimation {
+    // 玩家
+    message PlayerData {
+        // 玩家 ID
+        int32 player_id = 1;
+        // 是否抢庄
+        bool grab = 2;
+    }
+
+    repeated PlayerData players = 1;
+}
+
+// @comments 发牌4
+// @receive
+message NiuniuDeal4 {
+    // 牌
+    repeated string pokers = 1;
+}
+
+// @comments 要求闲家选择倍率
+// @receive
+message NiuniuRequireSpecifyRate {
+    // 是否是自己操作
+    bool is = 1;
+}
+
+// @comments 闲家选择倍率
+// @post
+message NiuniuSpecifyRate {
+    // 倍率
+    int32 rate = 1;
+}
+
+// @comments 小局结束
+// @receive
+message NiuniuRoundClear {
+    // 结算结果
+    message PlayerData {
+        // 玩家
+        Player player = 1;
+        // 总分
+        int32 points = 2;
+        // 手牌
+        repeated string pokers = 3;
+        // 牌型
+        string type = 4;
+        // 倍率
+        int32 rate = 5;
+        // 得分
+        int32 this_points = 6;
+    }
+
+    // 结果
+    repeated PlayerData players = 1;
+    // 时间
+    string finally_at = 2;
+}
+
+// @comments 约战清算
+// @receive
+message NiuniuRoundFinally {
+    // 结算结果
+    message PlayerData {
+        // 玩家
+        Player player = 1;
+        // 总分
+        int32 points = 2;
+        // 胜场
+        int32 victories = 3;
+    }
+
+    // 结果
+    repeated PlayerData players = 1;
+    // 时间
+    string finally_at = 2;
+}
+
+// @comments 动画已完成
+// @post
+message NiuniuContinueWith {}
+
+// @comments 牛牛战绩
+message NiuniuWarHistory {
+    // 玩家记录
+    message PlayerData {
+        // 玩家
+        Player player = 1;
+        // 得分
+        int32 points = 2;
+        // 胜利场数
+        int32 victories = 3;
+    }
+
+    // 房间 ID
+    int32 room_id = 1;
+    // 房间类型
+    // 0 约战房间
+    // 1 代开房间
+    int32 mode = 2;
+    // 记录
+    repeated PlayerData players = 3;
+    // 时间
+    string created_at = 4;
+}
+
+// @comments 查询战绩
+// @rpc response=NiuniuGetWarHistoryResponse
+message NiuniuGetWarHistoryRequest {}
+
+// @comments 查询战绩结果
+message NiuniuGetWarHistoryResponse {
+    // 牛牛战绩
+    repeated NiuniuWarHistory histories = 1;
+}
+
+// --------------------------------------↑牛牛↑-----------------------------------------

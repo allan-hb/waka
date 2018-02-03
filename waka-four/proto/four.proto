@@ -1,0 +1,724 @@
+syntax = "proto3";
+
+package four_proto;
+
+// @comments 微信登录请求
+// @post
+message WechatLogin {
+    // 微信UID
+    string wechat_uid = 1;
+    // 昵称
+    string nickname = 2;
+    // 头像URL
+    string head = 3;
+}
+
+// @comments 令牌登录请求
+// @post
+message TokenLogin {
+    // 令牌
+    string token = 1;
+}
+
+// @comments 登录失败
+// @receive
+message LoginFailed {
+    // 原因
+    // 0 未知
+    // 1 无效 Token
+    int32 reason = 1;
+}
+
+// @comments 登录成功
+// @receive
+message LoginSuccess {
+    // 登录令牌
+    string token = 1;
+}
+
+// --------------------------------------↑登陆消息↑-----------------------------------------
+
+// @comments 设置玩家附加信息请求
+// @rpc response=SetPlayerExtResponse
+message SetPlayerExtRequest {
+    // 微信ID
+    string wechat = 1;
+    // 身份证
+    string idcard = 2;
+    // 姓名
+    string name = 3;
+}
+
+// @comments 设置玩家附加信息结果
+message SetPlayerExtResponse {}
+
+// @comments 设置上级
+// @rpc response=SetSupervisorResponse
+message SetSupervisorRequest {
+    // 上级玩家 ID
+    int32 player_id = 1;
+}
+
+// @comments 设置上级结果
+message SetSupervisorResponse {}
+
+// --------------------------------------↑个人消息↑-----------------------------------------
+
+// @comments 玩家公开信息
+message Player {
+    // 玩家主键
+    int32 id = 1;
+    // 昵称
+    string nickname = 2;
+    // 头像
+    string head = 3;
+    // 钻石
+    int32 diamonds = 4;
+    // 注册时间
+    int64 created_at = 5;
+
+    // 微信号
+    string wechat = 6;
+
+    // 登录IP
+    string ip = 7;
+}
+
+// @comments 拉取玩家信息
+// @rpc response=PullPlayerResponse
+message PullPlayerRequest {
+    // 玩家 ID
+    int32 player_id = 1;
+}
+
+// @comments 拉取玩家信息结果
+message PullPlayerResponse {
+    // 玩家信息
+    Player player = 1;
+}
+
+// @comments 玩家信息
+message PlayerSecret {
+    // 玩家主键
+    int32 id = 1;
+    // 微信UID
+    string wechat_uid = 2;
+    // 昵称
+    string nickname = 3;
+    // 头像
+    string head = 4;
+
+    // 微信号
+    string wechat = 5;
+    // 身份证
+    string idcard = 6;
+    // 姓名
+    string name = 7;
+
+    // 钻石
+    int32 diamonds = 8;
+
+    // 代理的玩家 ID
+    int32 supervisor = 9;
+
+    // 注册时间
+    int64 created_at = 10;
+
+    // 登录IP
+    string ip = 11;
+}
+
+// @comments 拉取玩家信息
+// @rpc response=PullPlayerSecretResponse
+message PullPlayerSecretRequest {}
+
+// @comments 拉取玩家信息结果
+message PullPlayerSecretResponse {
+    // 玩家信息
+    PlayerSecret player = 1;
+}
+
+// @comments 已经进入大厅
+// @receive
+message HallEntered {
+    // 玩家信息
+    PlayerSecret player = 1;
+}
+
+// @comments 推送信息
+// @receive
+message FourWelcome {
+    // 客服信息
+    message Customer {
+        string name = 1;
+        string wechat = 2;
+    }
+    // 客服信息
+    repeated Customer customers = 1;
+    // 公告
+    // gapp 健康游戏公告
+    // four 四张公告
+    map<string, string> notices = 2;
+    // 链接
+    // recharge 充值链接
+    // login    分销链接
+    map<string, string> urls = 4;
+}
+
+// @comments 在线人数
+// @receive
+message PlayerNumber {
+    // 人数
+    int32 number = 1;
+}
+
+// @comments 是否需要恢复游戏
+// @receive
+message Recover {
+    // 是否需要恢复
+    bool is = 1;
+    // 游戏名称
+    // four 四张
+    string name = 2;
+}
+
+// --------------------------------------↑大厅消息↑-----------------------------------------
+
+// @comments 拉取我的好友列表
+// @rpc response=FourPullFriendsListResponse
+message FourPullFriendsListRequest {}
+
+// @comments 拉取我的好友列表结果
+message FourPullFriendsListResponse {
+    // 好友信息
+    message FourFriend {
+        // 玩家 ID
+        int32 player_id = 1;
+        // 昵称
+        string nickname = 2;
+        // 是否在线
+        bool online = 3;
+    }
+
+    // 列表
+    repeated FourFriend friends = 2;
+}
+
+
+// @comments 拉取添加列表
+// @rpc response=FourPullWantListResponse
+message FourPullWantListRequest {}
+
+// @comments 拉取添加列表结果
+message FourPullWantListResponse {
+    // 好友信息
+    message FourFriend {
+        // 玩家 ID
+        int32 player_id = 1;
+        // 昵称
+        string nickname = 2;
+        // 是否在线
+        bool online = 3;
+        // 状态
+        // 0 已发送
+        // 1 已拒绝
+        // 2 已通过
+        int32 status = 4;
+    }
+
+    // 列表
+    repeated FourFriend friends = 2;
+}
+
+// @comments 拉取申请列表
+// @rpc response=FourPullAskListResponse
+message FourPullAskListRequest {}
+
+// @comments 拉取申请列表结果
+message FourPullAskListResponse {
+    // 好友信息
+    message FourFriend {
+        // 申请 ID
+        int32 number = 1;
+        // 玩家 ID
+        int32 player_id = 2;
+        // 昵称
+        string nickname = 3;
+        // 是否在线
+        bool online = 4;
+        // 状态
+        // 状态
+        // 0 未处理
+        // 1 已拒绝
+        // 2 已通过
+        int32 status = 5;
+    }
+
+    // 列表
+    repeated FourFriend friends = 2;
+}
+
+// @comments 拉取屏蔽列表
+// @rpc response=FourPullBanListResponse
+message FourPullBanListRequest {}
+
+// @comments 拉取屏蔽列表结果
+message FourPullBanListResponse {
+    // 好友信息
+    message FourFriend {
+        // 玩家 ID
+        int32 player_id = 1;
+        // 昵称
+        string nickname = 2;
+        // 是否在线
+        bool online = 3;
+    }
+
+    // 列表
+    repeated FourFriend friends = 2;
+}
+
+// @comments 屏蔽好友
+// @rpc response=FourBanFriendResponse
+message FourBanFriendRequest {
+    // 好友 ID
+    int32 player_id = 1;
+}
+
+// @comments 屏蔽好友结果
+message FourBanFriendResponse {}
+
+// @comments 发送申请
+// @rpc response=FourWantFriendResponse
+message FourWantFriendRequest {
+    // 玩家 ID
+    int32 player_id = 1;
+}
+
+// @comments 发送申请结果
+message FourWantFriendResponse {}
+
+// @comments 回应申请
+// @rpc response=FourBecomeFriendResponse
+message FourBecomeFriendRequest {
+    // 申请 ID
+    int32 number = 1;
+    // 操作
+    // 0 拒绝
+    // 1 通过
+    int32 operate = 2;
+}
+
+// @comments 回应申请结果
+message FourBecomeFriendResponse {}
+
+// @comments 解除屏蔽好友
+// @rpc response=FourCancelBanFriendResponse
+message FourCancelBanFriendRequest {
+    // 好友 ID
+    int32 player_id = 1;
+}
+
+// @comments 解除屏蔽好友结果
+message FourCancelBanFriendResponse {}
+
+// @comments 房间配置
+message FourRoomOption {
+    // 场次
+    // 8 16 24
+    int32 rounds = 1;
+    // 倍率
+    // 1 2 3
+    int32 rate = 2;
+    // 玩法
+    // 1 通比
+    int32 rule_mode = 3;
+    // 模式
+    // 1 房主支付
+    // 2 AA支付
+    // 3 代开
+    int32 pay_mode = 4;
+    // 私密
+    bool scret = 5;
+}
+
+// @comments 房间信息1
+message FourRoom1 {
+    // 房间 ID
+    int32 room_id = 1;
+    // 配置
+    FourRoomOption option = 2;
+    // 创建者
+    int32 creator_id = 3;
+    // 房主
+    int32 owner_id = 4;
+    // 玩家数量
+    int32 player_number = 5;
+    // 是否正在游戏
+    bool gaming = 6;
+}
+
+// @comments 拉取代开房间列表
+// @rpc response=FourPullPayForAnotherRoomListResponse
+message FourPullPayForAnotherRoomListRequest {}
+
+// @comments 拉取代开房间列表结果
+message FourPullPayForAnotherRoomListResponse {
+    // 房间列表
+    repeated FourRoom1 rooms = 1;
+}
+
+// @comments 创建房间
+// @post
+message FourCreateRoom {
+    // 配置
+    FourRoomOption option = 1;
+}
+
+// @comments 创建房间失败
+// @receive
+message FourCreateRoomFailed {
+    // 原因
+    // 0 未知
+    // 1 钻石不足
+    // 2 已在房间中
+    int32 reason = 1;
+}
+
+// @comments 创建房间成功
+// @receive
+message FourCreateRoomSuccess {}
+
+// @comments 加入房间
+// @post
+message FourJoinRoom {
+    // 房间 ID
+    int32 room_id = 1;
+}
+
+// @comments 加入房间失败
+// @receive
+message FourJoinRoomFailed {
+    // 原因
+    // 0 未知
+    // 1 房间不存在
+    // 2 钻石不足
+    // 3 私密房间
+    // 4 已在房间中
+    // 5 游戏中
+    int32 reason = 1;
+}
+
+// @comments 加入房间成功
+// @receive
+message FourJoinRoomSuccess {}
+
+// @comments 房间信息2
+message FourRoom2 {
+    // 玩家
+    message Player {
+        // 玩家 ID
+        int32 player_id = 1;
+        // 准备状态
+        bool ready = 2;
+        // 离线
+        bool lost = 3;
+    }
+
+    // 房间 ID
+    int32 room_id = 1;
+    // 配置
+    FourRoomOption option = 2;
+    // 创建者
+    int32 creator_id = 3;
+    // 房主
+    int32 owner_id = 4;
+    // 玩家
+    repeated Player players = 5;
+    // 是否正在游戏
+    bool gaming = 6;
+}
+
+// @comments 更新房间信息
+// @receive
+message FourUpdateRoom {
+    // 房间信息
+    FourRoom2 room = 1;
+}
+
+// @comments 切换准备状态
+// @post
+message FourSwitchReady {}
+
+// @comments 离开
+// @post
+message FourLeaveRoom {}
+
+// @comments 离开了房间
+// @receive
+message FourLeftRoom {}
+
+// @comments 因房主解散离开了房间
+// @receive
+message FourLeftRoomByDismiss {}
+
+// @comments 解散
+// @post
+message FourDismiss {
+    // 房间 ID
+    int32 room_id = 1;
+}
+
+// @comments 解散投票
+// @receive
+message FourDismissRequireVote {
+    // 发起者
+    int32 player_id = 1;
+}
+
+// @comments 投票倒计时
+// @receive
+message FourDismissVoteCountdown {
+    // 倒计时
+    int32 number = 1;
+}
+
+// @comments 投票
+// @post
+message FourDismissVote {
+    // 是否同意
+    bool passing = 1;
+}
+
+// @comments 更新投票状态
+// @receive
+message FourUpdateDismissVoteStatus {
+    // 玩家信息
+    message Player {
+        // 玩家 ID
+        int32 id = 1;
+        // 结果
+        // 0 未处理
+        // 1 超时
+        // 2 同意
+        // 3 拒绝
+        int32 status = 2;
+    }
+
+    // 详细结果
+    repeated Player players = 1;
+}
+
+// @comments 投票结束
+// @receive
+message FourDismissFinally {
+    // 是否解散
+    bool dismiss = 1;
+}
+
+// @comments 聊天信息
+message FourMessage {
+    // 类型
+    // 0 纯文本
+    // 1 emoj
+    int32 type = 1;
+    // 内容
+    string text = 2;
+}
+
+// @comments 发送聊天信息
+// @post
+message FourSendMessage {
+    // 数据
+    FourMessage message = 1;
+}
+
+// @comments 接收聊天信息
+// @receive
+message FourReceivedMessage {
+    // 发送者
+    int32 sender = 1;
+    // 数据
+    FourMessage message = 2;
+}
+
+// @comments 开始游戏
+// @post
+message FourStart {}
+
+// @comments 游戏开始
+// @receive
+message FourStarted {
+    // 当前回合
+    int32 round_number = 1;
+}
+
+// @comments 回合信息
+message FourRoundStatus {
+    // 玩家
+    message Player {
+        // 玩家 ID
+        int32 player_id = 1;
+        // 总分
+        int32 score = 2;
+    }
+
+    // 玩家信息
+    repeated Player players = 1;
+}
+
+// @comments 更新游戏状态
+// @receive
+message FourUpdateRound {
+    // 信息
+    FourRoundStatus status = 1;
+}
+
+// @comments 要求切牌
+// @receive
+message FourRequireCut {
+    // 是否是自己切牌
+    bool is = 1;
+}
+
+// @comments 切牌
+// @post
+message FourCut {
+    // 位置
+    int32 pos = 1;
+}
+
+// @comments 切牌动画
+// @receive
+message FourRequireCutAnimation {
+    // 位置
+    int32 pos = 1;
+}
+
+// @comments 发牌
+// @receive
+message FourDeal {
+    // 手牌
+    repeated string pokers = 1;
+}
+
+// @comments 提交配牌
+// @post
+message FourCommitPokers {
+    // 前排
+    repeated string front = 1;
+    // 后排
+    repeated string behind = 2;
+}
+
+// @comments 比牌
+// @receive
+message FourCompare {
+    // 玩家比牌数据
+    message Player {
+        // 玩家 ID
+        int32 player_id = 1;
+        // 牌
+        repeated string pokers = 2;
+        // 牌型
+        string pattern = 3;
+        // 权重
+        int32 weight = 4;
+    }
+
+    // 比牌数据
+    repeated Player players = 1;
+}
+
+// @comments 结算
+// @receive
+message FourSettle {
+    // 玩家结算数据
+    message Player {
+        // 玩家 ID
+        int32 player_id = 1;
+        // 牌
+        // 01 前排
+        // 23 后排
+        repeated string pokers = 2;
+        // 牌型
+        // 0 前排
+        // 1 后排
+        repeated string pokers_pattern = 3;
+        // 得分
+        int32 score = 4;
+    }
+
+    // 玩家结算数据
+    repeated Player players = 1;
+}
+
+// @comments 终局结算
+// @receive
+message FourFinallySettle {
+    // 玩家结算数据
+    message Player {
+        // 玩家 ID
+        int32 player_id = 1;
+        // 胜场数
+        int32 victory_number = 2;
+        // 总得分
+        int32 score = 3;
+    }
+
+    // 玩家结算数据
+    repeated Player players = 1;
+}
+
+// @comments 阶段确认
+// @post
+message FourContinueWith {}
+
+// @comments 更新阶段确认状态
+// @receive
+message FourUpdateContinueWithStatus {
+    // 玩家信息
+    message Player {
+        // 玩家 ID
+        int32 id = 1;
+        // 结果
+        // 0 未确认
+        // 1 已确认
+        int32 status = 2;
+    }
+
+    // 阶段
+    // commit_pokers            提牌
+    // compare_continue         比牌确认
+    // settle_continue          结算确认
+    // cut_continue             切牌
+    // cut_animation_continue   切牌动画确认
+    // vote_continue            投票确认
+    string step = 1;
+    // 详细结果
+    repeated Player players = 2;
+}
+
+// @comments 四张战绩
+message FourWarHistory {
+    // 房间
+    int32 room_id = 1;
+    // 类型
+    // 0 约战
+    // 1 代开
+    int32 type = 2;
+    // 结算数据
+    FourFinallySettle finally = 3;
+    // 时间
+    int64 created_at = 4;
+}
+
+// @comments 拉取战绩列表
+// @rpc response=FourPullWarHistoryListResponse
+message FourPullWarHistoryListRequest {}
+
+// @comments 拉取战绩列表结果
+message FourPullWarHistoryListResponse {
+    // 战绩
+    repeated FourWarHistory histories = 1;
+}

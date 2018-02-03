@@ -1,0 +1,32 @@
+[log]
+log_level = 5
+log_heart = false
+
+[install]
+reset = false
+update = true
+
+#[database]
+#host = "120.78.64.197:3306"
+#user = "root"
+#password = "JGT1STCXBkA3xIww"
+#name = "cow"
+
+[database]
+host = "192.168.100.2:3306"
+user = "root"
+password = "lwzw611116"
+name = "cow"
+
+[gateway]
+listen4 = "127.0.0.1:9150"
+
+[backend]
+listen4 = "127.0.0.1:12943"
+
+[hall]
+salt = "_8CTa8Qc7plKM7X9"
+water_rate = 5
+register_money = 10000000
+bind_money = 2000
+min_player_number = 500

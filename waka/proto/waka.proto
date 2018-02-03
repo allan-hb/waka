@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package waka_proto;
+
+// 心跳
+message Heart {}
+
+// 传输
+message Transport {
+    // 消息 ID
+    fixed32 id = 1;
+    // 负载
+    bytes payload = 2;
+}
+
+// RPC 请求
+message FutureRequest {
+    // 消息 ID
+    fixed32 id = 1;
+    // 负载
+    bytes payload = 2;
+    // 请求序列号
+    uint64 number = 3;
+}
+
+// RPC 响应
+message FutureResponse {
+    // 状态
+    string status = 1;
+    // 消息 ID
+    fixed32 id = 2;
+    // 负载
+    bytes payload = 3;
+    // 请求序列号
+    uint64 number = 4;
+}

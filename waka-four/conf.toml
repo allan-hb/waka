@@ -1,0 +1,32 @@
+[log]
+log_level = 5
+log_heart = false
+
+[install]
+reset = false
+update = true
+
+#[database]
+#host = "120.78.64.197:3306"
+#user = "root"
+#password = "JGT1STCXBkA3xIww"
+#name = "cow"
+
+[database]
+host = "192.168.100.2:3306"
+user = "root"
+password = "lwzw611116"
+name = "four"
+
+[gateway]
+listen4 = "127.0.0.1:9140"
+
+[backend]
+listen4 = "127.0.0.1:8088"
+
+[hall]
+salt = "_8CTa8Qc7plKM7X9"
+water_rate = 5
+register_diamonds = 1500
+bind_diamonds = 20
+min_player_number = 500

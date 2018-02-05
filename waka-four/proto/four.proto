@@ -155,10 +155,13 @@ message FourWelcome {
     }
     // 客服信息
     repeated Customer customers = 1;
+    // 附加配置
+    // ios         ios 审核中 [true, false]
+    map<string, string> exts = 2;
     // 公告
-    // gapp 健康游戏公告
-    // four 四张公告
-    map<string, string> notices = 2;
+    // gapp         健康游戏公告
+    // four_roll    四张滚动公告
+    map<string, string> notices = 3;
     // 链接
     // recharge 充值链接
     // login    分销链接

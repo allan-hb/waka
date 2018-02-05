@@ -39,12 +39,15 @@ func (my *actorT) transport(ev *session_message.Transport) {
 			my.WechatLogin(evd)
 		case *four_proto.TokenLogin:
 			my.TokenLogin(evd)
-		case *four_proto.FourShareContinue:
-			my.FourShareContinue(evd)
 		}
 	} else {
-		if my.hall != nil {
-			my.hall.Tell(&supervisor_message.PlayerTransport{uint64(my.player), ev.Payload})
+		switch evd := ev.Payload.(type) {
+		case *four_proto.FourShareContinue:
+			my.FourShareContinue(evd)
+		default:
+			if my.hall != nil {
+				my.hall.Tell(&supervisor_message.PlayerTransport{uint64(my.player), ev.Payload})
+			}
 		}
 	}
 }

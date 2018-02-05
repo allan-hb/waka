@@ -37,6 +37,7 @@ func init() {
 		new(FriendData), new(AskData),
 		new(FourOrderRoomPurchaseHistory), new(FourPayForAnotherRoomPurchaseHistory),
 		new(FourWarHistory),
+		new(Configuration),
 	}
 	if conf.Option.Install.Reset {
 		if err := mysql.DropTableIfExists(tables...).Error; err != nil {
@@ -74,4 +75,5 @@ func init() {
 		}
 	}
 
+	RefreshConfiguration()
 }

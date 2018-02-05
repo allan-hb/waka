@@ -54,8 +54,6 @@ func (my *actorT) futureRequest(ev *session_message.FutureRequest) {
 		switch evd := ev.Payload.(type) {
 		case *cow_proto.SetPlayerExtRequest:
 			my.SetPlayerExtRequest(evd, ev.Respond)
-		case *cow_proto.GetPlayerHeadRequest:
-			my.GetPlayerHeadRequest(evd, ev.Respond)
 		default:
 			if my.hall != nil {
 				my.hall.Tell(&supervisor_message.PlayerFutureRequest{uint64(my.player), ev.Payload, ev.Respond})

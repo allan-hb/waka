@@ -28,7 +28,3 @@ func (my *actorT) SetPlayerExtRequest(ev *cow_proto.SetPlayerExtRequest, respond
 		respond(&cow_proto.SetPlayerExtResponse{}, nil)
 	}
 }
-
-func (my *actorT) GetPlayerHeadRequest(ev *cow_proto.GetPlayerHeadRequest, respond func(proto.Message, error)) {
-	respond(&cow_proto.GetPlayerHeadResponse{database.Player(ev.PlayerId).PlayerData().Head}, nil)
-}

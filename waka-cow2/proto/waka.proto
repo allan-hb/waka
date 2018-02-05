@@ -59,19 +59,6 @@ message SetPlayerExtRequest {
 // @comments 设置玩家附加信息结果
 message SetPlayerExtResponse {}
 
-// @comments 拉取玩家头像
-// @rpc response=GetPlayerHeadResponse
-message GetPlayerHeadRequest {
-    // 玩家 ID
-    int32 player_id = 1;
-}
-
-// @comments 拉取玩家头像结果
-message GetPlayerHeadResponse {
-    // 玩家头像
-    string head = 1;
-}
-
 // --------------------------------------↑个人消息↑-----------------------------------------
 
 // @comment 玩家公开信息
@@ -81,11 +68,13 @@ message Player {
     int32 id = 1;
     // 昵称
     string nickname = 2;
+    // 头像
+    string head = 3;
     // 微信号
-    string wechat = 3;
+    string wechat = 4;
 
     // 登录IP
-    string ip = 4;
+    string ip = 5;
 }
 
 // @comments 玩家
@@ -95,21 +84,23 @@ message PlayerSecret {
     int32 id = 1;
     // 昵称
     string nickname = 2;
+    // 头像
+    string head = 3;
     // 微信号
-    string wechat = 3;
+    string wechat = 4;
     // 身份证
-    string idcard = 4;
+    string idcard = 5;
     // 姓名
-    string name = 5;
+    string name = 6;
 
     // 注册时间
-    string created_at = 6;
+    string created_at = 7;
 
     // 钻石
-    int32 diamonds = 7;
+    int32 diamonds = 8;
 
     // 登录IP
-    string ip = 8;
+    string ip = 9;
 }
 
 // @comments 已经进入大厅

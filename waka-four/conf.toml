@@ -29,4 +29,5 @@ salt = "_8CTa8Qc7plKM7X9"
 water_rate = 5
 register_diamonds = 1500
 bind_diamonds = 20
+share_diamonds = 10
 min_player_number = 500

@@ -9,7 +9,7 @@ import (
 	"github.com/liuhan907/waka/waka/modules/supervisor/supervisor_message"
 )
 
-func (my *actorT) wechatLogin(ev *four_proto.WechatLogin) {
+func (my *actorT) WechatLogin(ev *four_proto.WechatLogin) {
 	my.log.WithFields(logrus.Fields{
 		"union_id": ev.GetWechatUid(),
 		"nickname": ev.GetNickname(),
@@ -76,7 +76,7 @@ func (my *actorT) wechatLogin(ev *four_proto.WechatLogin) {
 	}).Debugln("wechat login success")
 }
 
-func (my *actorT) tokenLogin(ev *four_proto.TokenLogin) {
+func (my *actorT) TokenLogin(ev *four_proto.TokenLogin) {
 	my.log.WithFields(logrus.Fields{
 		"token": ev.GetToken(),
 	}).Debugln("token login")

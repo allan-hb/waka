@@ -722,3 +722,7 @@ message FourPullWarHistoryListResponse {
     // 战绩
     repeated FourWarHistory histories = 1;
 }
+
+// @comments 分享结束
+// @post
+message FourShareContinue {}

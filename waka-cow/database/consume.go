@@ -479,38 +479,9 @@ func GomokuSettle(master, student Player, money int32) error {
 
 	modifies = append(modifies, &modifyMoneyAction{
 		Player: master,
-		Number: int32(float64(money) * (1.0 - float64(conf.Option.Hall.WaterRate)/100)),
+		Number: money,
 	})
 	changed = append(changed, master)
-
-	modifies = append(modifies, &modifyMoneyAction{
-		Player: master.PlayerData().Supervisor,
-		Number: int32(float64(money) * (float64(conf.Option.Hall.WaterRate) / 100) * (float64(master.PlayerData().Supervisor.SupervisorData().BonusRate) / 100)),
-		After: func(ts *gorm.DB, self *modifyMoneyAction) error {
-			consume := &GomokuPurchaseHistory{
-				Master:    master,
-				Student:   student,
-				Number:    money,
-				CreatedAt: time.Now(),
-			}
-			if err := ts.Create(consume).Error; err != nil {
-				return err
-			}
-			if master.PlayerData().Supervisor > 0 {
-				bonus := newBonusByGomokuCost(
-					master.PlayerData().Supervisor,
-					master,
-					int32(float64(money)*float64(float64(master.PlayerData().Supervisor.SupervisorData().BonusRate)/100)+0.5),
-					consume.Ref,
-				)
-				if err := ts.Create(bonus).Error; err != nil {
-					return err
-				}
-			}
-			return nil
-		},
-	})
-	changed = append(changed, master.PlayerData().Supervisor)
 
 	ts := mysql.Begin()
 

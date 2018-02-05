@@ -76,20 +76,20 @@ func (my *actorT) sendNiuniuJoinRoomFailed(player database.Player, reason int32)
 	my.send(player, &cow_proto.NiuniuJoinRoomFailed{reason})
 }
 
-func (my *actorT) sendNiuniuJoinRoomSuccess(player database.Player, room cowRoomT) {
-	my.send(player, &cow_proto.NiuniuJoinRoomSuccess{room.NiuniuRoomData1()})
+func (my *actorT) sendNiuniuRoomJoined(player database.Player, room cowRoomT) {
+	my.send(player, &cow_proto.NiuniuRoomJoined{room.NiuniuRoomData1()})
 }
 
-func (my *actorT) sendNiuniuCreateRoomSuccess(player database.Player) {
-	my.send(player, &cow_proto.NiuniuCreateRoomSuccess{})
+func (my *actorT) sendNiuniuRoomCreated(player database.Player) {
+	my.send(player, &cow_proto.NiuniuRoomCreated{})
 }
 
-func (my *actorT) sendNiuniuLeftRoom(player database.Player) {
-	my.send(player, &cow_proto.NiuniuLeftRoom{})
+func (my *actorT) sendNiuniuRoomLeft(player database.Player) {
+	my.send(player, &cow_proto.NiuniuRoomLeft{})
 }
 
-func (my *actorT) sendNiuniuLeftRoomByDismiss(player database.Player) {
-	my.send(player, &cow_proto.NiuniuLeftRoomByDismiss{})
+func (my *actorT) sendNiuniuRoomLeftByDismiss(player database.Player) {
+	my.send(player, &cow_proto.NiuniuRoomLeftByDismiss{})
 }
 
 func (my *actorT) sendNiuniuUpdateRoom(player database.Player, room cowRoomT) {

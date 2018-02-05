@@ -317,7 +317,7 @@ func (r *payForAnotherRoomT) CreateRoom(hall *actorT, id int32, option *cow_prot
 		return nil
 	} else {
 		r.Hall.cowRooms[id] = r
-		r.Hall.sendNiuniuCreateRoomSuccess(creator)
+		r.Hall.sendNiuniuRoomCreated(creator)
 		return r
 	}
 }
@@ -352,7 +352,7 @@ func (r *payForAnotherRoomT) JoinRoom(player *playerT) {
 
 	player.InsideCow = r.Id
 
-	r.Hall.sendNiuniuJoinRoomSuccess(player.Player, r)
+	r.Hall.sendNiuniuRoomJoined(player.Player, r)
 	r.Hall.sendNiuniuUpdateRoomForAll(r)
 }
 
@@ -363,7 +363,7 @@ func (r *payForAnotherRoomT) LeaveRoom(player *playerT) {
 			delete(r.Players, player.Player)
 			r.Seats.Return(roomPlayer.Pos)
 
-			r.Hall.sendNiuniuLeftRoom(player.Player)
+			r.Hall.sendNiuniuRoomLeft(player.Player)
 
 			if r.Owner == player.Player {
 				r.Owner = 0
@@ -395,7 +395,7 @@ func (r *payForAnotherRoomT) Dismiss(player *playerT) {
 			delete(r.Hall.cowRooms, r.Id)
 			for _, player := range r.Players {
 				r.Hall.players[player.Player].InsideCow = 0
-				r.Hall.sendNiuniuLeftRoomByDismiss(player.Player)
+				r.Hall.sendNiuniuRoomLeftByDismiss(player.Player)
 			}
 		}
 	}
@@ -411,7 +411,7 @@ func (r *payForAnotherRoomT) KickPlayer(player *playerT, target database.Player)
 			if targetPlayer, being := r.Players[target]; being {
 				delete(r.Players, target)
 				r.Seats.Return(targetPlayer.Pos)
-				r.Hall.sendNiuniuLeftRoom(player.Player)
+				r.Hall.sendNiuniuRoomLeft(player.Player)
 
 				if r.Owner == player.Player {
 					r.Owner = 0

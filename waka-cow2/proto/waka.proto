@@ -237,7 +237,7 @@ message NiuniuCreateRoomFailed {
 
 // @comments 创建房间成功
 // @receive
-message NiuniuCreateRoomSuccess {}
+message NiuniuRoomCreated {}
 
 // @comments 加入房间
 // @post
@@ -260,7 +260,7 @@ message NiuniuJoinRoomFailed {
 
 // @comments 加入房间成功
 // @receive
-message NiuniuJoinRoomSuccess {
+message NiuniuRoomJoined {
     // 房间信息
     NiuniuRoomData1 room = 1;
 }
@@ -271,11 +271,11 @@ message NiuniuLeaveRoom {}
 
 // @comments 已离开房间
 // @receive
-message NiuniuLeftRoom {}
+message NiuniuRoomLeft {}
 
 // @comments 因房主解散离开了房间
 // @receive
-message NiuniuLeftRoomByDismiss {}
+message NiuniuRoomLeftByDismiss {}
 
 // @comments 房间状态更新
 // @receive

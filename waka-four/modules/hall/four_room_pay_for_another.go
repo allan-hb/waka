@@ -1057,13 +1057,16 @@ func (r *fourPayForAnotherRoomT) loopVoteContinue() bool {
 	if !voteFinally {
 		continueFinally := true
 		for _, player := range r.Players {
+			updated := player.Round.Sent
 			if !player.Round.VoteCommitted {
 				continueFinally = false
 				if !player.Round.Sent {
 					r.Hall.sendFourDismissRequireVote(player.Player, r.VoteInitiator)
-					r.Hall.sendFourUpdateDismissVoteStatusForAll(r)
 					player.Round.Sent = true
 				}
+			}
+			if !updated {
+				r.Hall.sendFourUpdateDismissVoteStatus(player.Player, r)
 			}
 		}
 

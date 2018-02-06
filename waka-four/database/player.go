@@ -312,7 +312,7 @@ func PlayerShared(id Player) (int32, error) {
 		Player: id,
 		Number: conf.Option.Hall.ShareDiamonds,
 		After: func(ts *gorm.DB, modify *modifyDiamondsAction) error {
-			if err := ts.Where("id = ?", id).Updates(&PlayerData{
+			if err := ts.Model(new(PlayerData)).Where("id = ?", id).Updates(&PlayerData{
 				SharedAt: time.Now(),
 			}).Error; err != nil {
 				return err

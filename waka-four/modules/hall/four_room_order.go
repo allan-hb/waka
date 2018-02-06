@@ -569,6 +569,10 @@ func (r *fourOrderRoomT) Start(player *playerT) {
 				return
 			}
 
+			for _, cost := range playerRoomCost {
+				r.Hall.sendPlayerSecret(cost.Player)
+			}
+
 			r.loop = r.loopStart
 
 			r.Loop()
@@ -1148,7 +1152,6 @@ func (r *fourOrderRoomT) loopVoteSettle() bool {
 			if playerData, being := r.Hall.players[player.Player]; being {
 				playerData.InsideFour = 0
 			}
-			r.Hall.sendFourLeftRoomByDismiss(player.Player)
 		}
 		return false
 	}

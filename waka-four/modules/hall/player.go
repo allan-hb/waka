@@ -41,7 +41,6 @@ func (my *actorT) ToPlayer(player database.Player) (pb *four_proto.Player) {
 	pb.Id = int32(playerData.Id)
 	pb.Nickname = playerData.Nickname
 	pb.Head = playerData.Head
-	pb.Diamonds = playerData.Diamonds
 	pb.Wechat = playerData.Wechat
 
 	localPlayer, being := my.players[player]

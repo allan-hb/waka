@@ -72,16 +72,14 @@ message Player {
     string nickname = 2;
     // 头像
     string head = 3;
-    // 钻石
-    int32 diamonds = 4;
     // 注册时间
-    int64 created_at = 5;
+    int64 created_at = 4;
 
     // 微信号
-    string wechat = 6;
+    string wechat = 5;
 
     // 登录IP
-    string ip = 7;
+    string ip = 6;
 }
 
 // @comments 拉取玩家信息
@@ -98,6 +96,7 @@ message PullPlayerResponse {
 }
 
 // @comments 玩家信息
+// @receive
 message PlayerSecret {
     // 玩家主键
     int32 id = 1;

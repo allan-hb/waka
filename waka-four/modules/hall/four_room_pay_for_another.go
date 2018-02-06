@@ -527,6 +527,8 @@ func (r *fourPayForAnotherRoomT) Start(player *playerT) {
 				return
 			}
 
+			r.Hall.sendPlayerSecret(r.Creator)
+
 			r.loop = r.loopStart
 
 			r.Loop()
@@ -1101,14 +1103,12 @@ func (r *fourPayForAnotherRoomT) loopVoteSettle() bool {
 		r.StepSwap = ""
 		return true
 	} else {
+		delete(r.Hall.fourRooms, r.Id)
 		for _, player := range r.Players {
 			if playerData, being := r.Hall.players[player.Player]; being {
 				playerData.InsideFour = 0
 			}
-			r.Hall.sendFourLeftRoomByDismiss(player.Player)
 		}
-		delete(r.Hall.fourRooms, r.Id)
-
 		return false
 	}
 }

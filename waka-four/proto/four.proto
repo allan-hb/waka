@@ -517,6 +517,8 @@ message FourUpdateDismissVoteStatus {
 message FourDismissFinally {
     // 是否解散
     bool dismiss = 1;
+    // 结算
+    FourFinallySettle finally = 2;
 }
 
 // @comments 聊天信息

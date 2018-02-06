@@ -151,8 +151,8 @@ func (my *actorT) sendFourRequireCutAnimation(player database.Player, pos int32)
 	my.send(player, &four_proto.FourRequireCutAnimation{pos})
 }
 
-func (my *actorT) sendFourDismissFinally(player database.Player, dismiss bool) {
-	my.send(player, &four_proto.FourDismissFinally{dismiss})
+func (my *actorT) sendFourDismissFinally(player database.Player, dismiss bool, r fourRoomT) {
+	my.send(player, &four_proto.FourDismissFinally{dismiss, r.FourFinallySettle()})
 }
 
 // --------------------------------------------------------
@@ -195,7 +195,7 @@ func (my *actorT) sendFourUpdateContinueWithStatusForAll(room fourRoomT) {
 
 func (my *actorT) sendFourDismissFinallyForAll(room fourRoomT, dismiss bool) {
 	for _, player := range room.GetPlayers() {
-		my.sendFourDismissFinally(player, dismiss)
+		my.sendFourDismissFinally(player, dismiss, room)
 	}
 }
 

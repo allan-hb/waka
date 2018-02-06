@@ -256,7 +256,8 @@ func (r *fourPayForAnotherRoomT) FourRoundStatus() *four_proto.FourRoundStatus {
 		})
 	}
 	return &four_proto.FourRoundStatus{
-		Players: players,
+		RoundNumber: r.RoundNumber,
+		Players:     players,
 	}
 }
 

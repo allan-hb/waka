@@ -567,8 +567,10 @@ message FourRoundStatus {
         int32 score = 2;
     }
 
+    // 当前回合
+    int32 round_number = 1;
     // 玩家信息
-    repeated Player players = 1;
+    repeated Player players = 2;
 }
 
 // @comments 更新游戏状态

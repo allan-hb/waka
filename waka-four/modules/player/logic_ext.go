@@ -19,6 +19,6 @@ func (my *actorT) FourShareContinue(ev *four_proto.FourShareContinue) {
 		log.WithFields(logrus.Fields{
 			"player":   my.player,
 			"diamonds": number,
-		}).Warnln("share continue and get diamonds")
+		}).Debugln("share continue and get diamonds")
 	}
 }

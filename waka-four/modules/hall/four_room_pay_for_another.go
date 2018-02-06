@@ -114,9 +114,8 @@ type fourPayForAnotherRoomT struct {
 	RoundNumber int32
 	Step        string
 
-	Compared       *four_proto.FourCompare
-	Settled        *four_proto.FourSettle
-	FinallySettled *four_proto.FourFinallySettle
+	Compared *four_proto.FourCompare
+	Settled  *four_proto.FourSettle
 
 	VoteInitiator database.Player
 
@@ -232,7 +231,20 @@ func (r *fourPayForAnotherRoomT) FourSettle() *four_proto.FourSettle {
 }
 
 func (r *fourPayForAnotherRoomT) FourFinallySettle() *four_proto.FourFinallySettle {
-	return r.FinallySettled
+	settled := &four_proto.FourFinallySettle{}
+	for _, player := range r.Players {
+		settled.Players = append(settled.Players, &four_proto.FourFinallySettle_Player{
+			PlayerId:      int32(player.Player),
+			Nickname:      player.Player.PlayerData().Nickname,
+			Score:         player.Round.Points,
+			VictoryNumber: player.Round.VictoriousNumber,
+		})
+	}
+
+	sort.Slice(settled.Players, func(i, j int) bool {
+		return settled.Players[i].Score < settled.Players[j].Score
+	})
+	return settled
 }
 
 func (r *fourPayForAnotherRoomT) FourRoundStatus() *four_proto.FourRoundStatus {
@@ -992,19 +1004,6 @@ func (r *fourPayForAnotherRoomT) loopCutAnimationContinue() bool {
 }
 
 func (r *fourPayForAnotherRoomT) loopFinallySettle() bool {
-	r.FinallySettled = &four_proto.FourFinallySettle{}
-	for _, player := range r.Players {
-		r.FinallySettled.Players = append(r.FinallySettled.Players, &four_proto.FourFinallySettle_Player{
-			PlayerId:      int32(player.Player),
-			Score:         player.Round.Points,
-			VictoryNumber: player.Round.VictoriousNumber,
-		})
-	}
-
-	sort.Slice(r.FinallySettled.Players, func(i, j int) bool {
-		return r.FinallySettled.Players[i].Score < r.FinallySettled.Players[j].Score
-	})
-
 	for _, player := range r.Players {
 		r.Hall.sendFourFinallySettle(player.Player, r)
 	}

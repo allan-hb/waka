@@ -665,10 +665,12 @@ message FourFinallySettle {
     message Player {
         // 玩家 ID
         int32 player_id = 1;
+        // 昵称
+        string nickname = 2;
         // 胜场数
-        int32 victory_number = 2;
+        int32 victory_number = 3;
         // 总得分
-        int32 score = 3;
+        int32 score = 4;
     }
 
     // 玩家结算数据

@@ -101,6 +101,7 @@ func RegisterPlayer(unionId, nickname string, head, token string) (*PlayerData, 
 		Diamonds:  conf.Option.Hall.RegisterDiamonds,
 		Ban:       0,
 		CreatedAt: time.Now(),
+		SharedAt:  time.Date(2018, 1, 1, 0, 0, 0, 0, time.Now().Location()),
 	}
 	if err := mysql.Create(player).Error; err != nil {
 		return nil, err

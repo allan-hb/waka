@@ -17,7 +17,7 @@ type FourWarHistory struct {
 	// 1 代开
 	Mode int32
 	// 记录数据
-	Payload []byte `gorm:"mediumblob"`
+	Payload []byte `gorm:"type:mediumblob"`
 	// 时间
 	CreatedAt time.Time
 }

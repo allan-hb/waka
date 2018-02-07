@@ -26,6 +26,10 @@ func (my *actorT) Receive(context actor.Context) {
 	if my.ReceiveHall(context) {
 		return
 	}
+
+	if my.target != nil {
+		my.target.Tell(context.Message())
+	}
 }
 
 // 消息转发目标创建器

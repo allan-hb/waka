@@ -43,6 +43,7 @@ type cowRoomT interface {
 	NiuniuGrabAnimation() *cow_proto.NiuniuGrabAnimation
 	NiuniuRoundClear() *cow_proto.NiuniuRoundClear
 	NiuniuRoundFinally() *cow_proto.NiuniuRoundFinally
+	BackendRoom() map[string]interface{}
 }
 
 type cowRoomMapT map[int32]cowRoomT

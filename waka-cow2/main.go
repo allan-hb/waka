@@ -18,6 +18,7 @@ import (
 	_ "github.com/liuhan907/waka/waka-cow2/log"
 	_ "github.com/liuhan907/waka/waka/vt100"
 
+	"github.com/liuhan907/waka/waka-cow2/backend"
 	"github.com/liuhan907/waka/waka-cow2/conf"
 	"github.com/liuhan907/waka/waka-cow2/modules/hall"
 	"github.com/liuhan907/waka/waka-cow2/modules/player"
@@ -46,7 +47,17 @@ func main() {
 
 func startGateway() {
 	supervisorTargetCreator := func(pid *actor.PID) *actor.PID {
-		return hall.Spawn(pid)
+		target := hall.Spawn(pid)
+		go func() {
+			backendOption := backend.Option{
+				TargetCreator: func() *actor.PID {
+					return target
+				},
+				Address: conf.Option.Backend.Listen4,
+			}
+			backend.Start(backendOption)
+		}()
+		return target
 	}
 	supervisorOption := supervisor.Option{
 		TargetCreator: supervisorTargetCreator,

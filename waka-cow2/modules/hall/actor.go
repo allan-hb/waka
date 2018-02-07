@@ -52,6 +52,9 @@ func (my *actorT) Receive(context actor.Context) {
 	if my.ReceiveSupervisor(context) {
 		return
 	}
+	if my.ReceiveBackend(context) {
+		return
+	}
 }
 
 func Spawn(supervisor *actor.PID) *actor.PID {

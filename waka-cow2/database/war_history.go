@@ -19,7 +19,7 @@ type CowWarHistory struct {
 	Mode int32
 
 	// 记录数据
-	Payload []byte `gorm:"mediumblob"`
+	Payload []byte `gorm:"type:mediumblob"`
 
 	// 时间
 	CreatedAt time.Time
@@ -44,16 +44,16 @@ func CowQueryWarHistory(player Player, limit int32) ([]*cow_proto.NiuniuWarHisto
 
 // 添加牛牛约战战绩
 func CowAddOrderWarHistory(player Player, roomId int32, finally *cow_proto.NiuniuRoundFinally) (e error) {
-	return cow_protoAddWarHistory(0, player, roomId, finally)
+	return cowAddWarHistory(0, player, roomId, finally)
 }
 
 // 添加牛牛代开战绩
 func CowAddPayForAnotherWarHistory(player Player, roomId int32, finally *cow_proto.NiuniuRoundFinally) (e error) {
-	return cow_protoAddWarHistory(1, player, roomId, finally)
+	return cowAddWarHistory(1, player, roomId, finally)
 }
 
 // 添加牛牛战绩
-func cow_protoAddWarHistory(mode int32, player Player, roomId int32, finally *cow_proto.NiuniuRoundFinally) (e error) {
+func cowAddWarHistory(mode int32, player Player, roomId int32, finally *cow_proto.NiuniuRoundFinally) (e error) {
 	record := &cow_proto.NiuniuWarHistory{
 		RoomId:    roomId,
 		Mode:      mode,

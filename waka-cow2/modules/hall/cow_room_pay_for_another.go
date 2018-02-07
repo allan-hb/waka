@@ -249,6 +249,37 @@ func (r *payForAnotherRoomT) NiuniuRoundFinally() *cow_proto.NiuniuRoundFinally 
 	return &cow_proto.NiuniuRoundFinally{Players: players, FinallyAt: time.Now().Format("2006-01-02 15:04:05")}
 }
 
+func (r *payForAnotherRoomT) BackendRoom() map[string]interface{} {
+	var players []map[string]interface{}
+	for _, player := range r.Players {
+		playerData := player.Player.PlayerData()
+		lost := false
+		if playerData, being := r.Hall.players[player.Player]; !being || playerData.Remote == "" {
+			lost = true
+		}
+		d := map[string]interface{}{
+			"id":       player.Player,
+			"nickname": playerData.Nickname,
+			"head":     playerData.Head,
+			"pos":      player.Pos,
+			"ready":    player.Ready,
+			"offline":  lost,
+			"score":    player.Round.Points,
+		}
+		players = append(players, d)
+	}
+	return map[string]interface{}{
+		"id":           r.Id,
+		"option":       *r.Option,
+		"creator":      r.Creator,
+		"owner":        r.Owner,
+		"players":      players,
+		"round_number": r.RoundNumber,
+		"status":       r.Step,
+		"banker":       r.Banker,
+	}
+}
+
 // ---------------------------------------------------------------------------------------------------------------------
 
 func (r *payForAnotherRoomT) Loop() {

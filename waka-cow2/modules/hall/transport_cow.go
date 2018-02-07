@@ -50,7 +50,7 @@ func (my *actorT) NiuniuCreateRoom(player *playerT, ev *cow_proto.NiuniuCreateRo
 	if (ev.GetOption().GetBankerMode() != 0 && ev.GetOption().GetBankerMode() != 1 && ev.GetOption().GetBankerMode() != 2) ||
 		(ev.GetOption().GetScore() != 1 && ev.GetOption().GetScore() != 2 && ev.GetOption().GetScore() != 3 && ev.GetOption().GetScore() != 5 &&
 			ev.GetOption().GetScore() != 10 && ev.GetOption().GetScore() != 20 && ev.GetOption().GetScore() != 30 && ev.GetOption().GetScore() != 50) ||
-		(ev.Option.GetRoundNumber() != 12 || ev.Option.GetRoundNumber() != 20) ||
+		(ev.Option.GetRoundNumber() != 12 && ev.Option.GetRoundNumber() != 20) ||
 		(ev.Option.GetPayMode() != 1 && ev.Option.GetPayMode() != 2) ||
 		(ev.Option.GetMode() != 0 && ev.Option.GetMode() != 1) ||
 		(ev.Option.GetAdditionalPokers() != 0 && ev.Option.GetAdditionalPokers() != 1) {

@@ -202,7 +202,7 @@ func (my *actorT) NiuniuKickPlayer(player *playerT, ev *cow_proto.NiuniuKickPlay
 		return
 	}
 
-	room.KickPlayer(player, database.Player(ev.GetPlayerId()))
+	room.KickPlayer(player, database.Player(ev.GetPlayerId()), ev.GetBan())
 }
 
 func (my *actorT) NiuniuStart(player *playerT, ev *cow_proto.NiuniuStart) {

@@ -105,6 +105,7 @@ type payForAnotherRoomT struct {
 	tick func()
 
 	Seats *tools.NumberPool
+	Bans  map[database.Player]bool
 
 	Gaming      bool
 	RoundNumber int32
@@ -341,6 +342,7 @@ func (r *payForAnotherRoomT) CreateRoom(hall *actorT, id int32, option *cow_prot
 		Creator: creator,
 		Players: make(payForAnotherPlayerMapT, 5),
 		Seats:   tools.NewNumberPool(1, 5, false),
+		Bans:    make(map[database.Player]bool),
 	}
 
 	if creator.PlayerData().Diamonds < r.CreateDiamonds() {
@@ -354,6 +356,11 @@ func (r *payForAnotherRoomT) CreateRoom(hall *actorT, id int32, option *cow_prot
 }
 
 func (r *payForAnotherRoomT) JoinRoom(player *playerT) {
+	if r.Bans[player.Player] {
+		r.Hall.sendNiuniuJoinRoomFailed(player.Player, 5)
+		return
+	}
+
 	_, being := r.Players[player.Player]
 	if being {
 		r.Hall.sendNiuniuJoinRoomFailed(player.Player, 2)
@@ -432,7 +439,7 @@ func (r *payForAnotherRoomT) Dismiss(player *playerT) {
 	}
 }
 
-func (r *payForAnotherRoomT) KickPlayer(player *playerT, target database.Player) {
+func (r *payForAnotherRoomT) KickPlayer(player *playerT, target database.Player, ban bool) {
 	if !r.Gaming {
 		if r.Creator == player.Player || r.Owner == player.Player {
 			if targetPlayer, being := r.Hall.players[target]; being {
@@ -443,6 +450,10 @@ func (r *payForAnotherRoomT) KickPlayer(player *playerT, target database.Player)
 				delete(r.Players, target)
 				r.Seats.Return(targetPlayer.Pos)
 				r.Hall.sendNiuniuRoomLeft(player.Player)
+
+				if ban {
+					r.Bans[target] = true
+				}
 
 				if r.Owner == player.Player {
 					r.Owner = 0

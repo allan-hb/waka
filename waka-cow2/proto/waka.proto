@@ -255,6 +255,7 @@ message NiuniuJoinRoomFailed {
     // 2 已在房间
     // 3 房间不存在
     // 4 游戏已开始
+    // 5 被禁止
     int32 reason = 1;
 }
 
@@ -302,6 +303,8 @@ message NiuniuKickPlayer {
     int32 room_id = 1;
     // 玩家
     int32 player_id = 2;
+    // 禁止进入
+    bool ban = 3;
 }
 
 // @comments 倒数计时

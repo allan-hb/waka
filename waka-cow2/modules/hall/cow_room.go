@@ -17,7 +17,7 @@ type cowRoomT interface {
 	LeaveRoom(player *playerT)
 	SwitchReady(player *playerT)
 	Dismiss(player *playerT)
-	KickPlayer(player *playerT, target database.Player)
+	KickPlayer(player *playerT, target database.Player, ban bool)
 	Start(player *playerT)
 	SpecifyBanker(player *playerT, banker database.Player)
 	Grab(player *playerT, grab bool)

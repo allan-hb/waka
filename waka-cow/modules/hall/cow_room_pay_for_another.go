@@ -43,6 +43,8 @@ type payForAnotherRoundPlayerT struct {
 	// 阶段完成已提交
 	ContinueWithCommitted bool
 
+	// 本回合权重
+	PokersWeight int32
 	// 本回合牌型
 	PokersPattern string
 	// 本回合牌型倍率
@@ -260,8 +262,12 @@ func (r *payForAnotherRoomT) NiuniuRoundClear() *waka.NiuniuRoundClear {
 			ThisPoints: player.Round.PokersPoints,
 			Pokers:     player.Round.CommittedPokers,
 			Points:     player.Round.Points,
+			Weight:     player.Round.PokersWeight,
 		})
 	}
+	sort.Slice(players, func(i, j int) bool {
+		return players[j].Weight < players[i].Weight
+	})
 	return &waka.NiuniuRoundClear{Players: players, FinallyAt: time.Now().Format("2006-01-02 15:04:05")}
 }
 
@@ -686,7 +692,7 @@ func (r *payForAnotherRoomT) loopGrab() bool {
 
 	r.loop = r.loopGrabContinue
 	r.tick = buildTickNumber(
-		8,
+		6,
 		func(number int32) {
 			r.Hall.sendNiuniuCountdownForAll(r, number)
 		},
@@ -884,7 +890,7 @@ func (r *payForAnotherRoomT) loopDeal1() bool {
 
 	r.loop = r.loopCommitPokersContinue
 	r.tick = buildTickNumber(
-		5,
+		3,
 		func(number int32) {
 			r.Hall.sendNiuniuCountdownForAll(r, number)
 		},

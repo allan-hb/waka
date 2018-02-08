@@ -69,6 +69,10 @@ func (my *actorT) NiuniuQueryAgentRoomListRequest(player *playerT,
 		}
 	}
 
+	sort.Slice(pb, func(i, j int) bool {
+		return pb[i].Id < pb[j].Id
+	})
+
 	respond(&waka.NiuniuQueryAgentRoomListResponse{pb}, nil)
 }
 

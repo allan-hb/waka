@@ -41,6 +41,8 @@ type supervisorRoundPlayerT struct {
 	// 阶段完成已提交
 	ContinueWithCommitted bool
 
+	// 本回合权重
+	PokersWeight int32
 	// 本回合牌型
 	PokersPattern string
 	// 本回合牌型倍率
@@ -258,8 +260,12 @@ func (r *supervisorRoomT) NiuniuRoundClear() *waka.NiuniuRoundClear {
 			ThisPoints: player.Round.Points,
 			Pokers:     player.Round.CommittedPokers,
 			Points:     player.Player.PlayerData().Money / 100,
+			Weight:     player.Round.PokersWeight,
 		})
 	}
+	sort.Slice(players, func(i, j int) bool {
+		return players[j].Weight < players[i].Weight
+	})
 	return &waka.NiuniuRoundClear{Players: players, FinallyAt: time.Now().Format("2006-01-02 15:04:05")}
 }
 
@@ -656,7 +662,7 @@ func (r *supervisorRoomT) loopGrab() bool {
 
 	r.loop = r.loopGrabContinue
 	r.tick = buildTickNumber(
-		8,
+		6,
 		func(number int32) {
 			r.Hall.sendNiuniuCountdownForAll(r, number)
 		},
@@ -834,7 +840,7 @@ func (r *supervisorRoomT) loopDeal1() bool {
 		pokers = append(pokers, player.Round.Pokers4...)
 		pokers = append(pokers, player.Round.Pokers1)
 
-		pokers, _, pattern, _, err := cow.SearchBestPokerPattern(pokers, r.Mode)
+		pokers, weight, pattern, _, err := cow.SearchBestPokerPattern(pokers, r.Mode)
 		if err != nil {
 			log.WithFields(logrus.Fields{
 				"player": player.Player,
@@ -843,6 +849,7 @@ func (r *supervisorRoomT) loopDeal1() bool {
 			}).Warnln("search best pokers failed")
 		} else {
 			player.Round.CommittedPokers = pokers
+			player.Round.PokersWeight = int32(weight)
 			player.Round.PokersPattern = pattern
 		}
 
@@ -853,7 +860,7 @@ func (r *supervisorRoomT) loopDeal1() bool {
 
 	r.loop = r.loopCommitPokersContinue
 	r.tick = buildTickNumber(
-		5,
+		3,
 		func(number int32) {
 			r.Hall.sendNiuniuCountdownForAll(r, number)
 		},

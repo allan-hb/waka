@@ -611,6 +611,8 @@ message NiuniuRoundClear {
         // flush 同花
         // straight 顺子
         string type = 2;
+        // 权重
+        int32 weight = 7;
         // 倍率
         int32 rate = 3;
         // 得分
@@ -1100,6 +1102,14 @@ message GomokuLeave {}
 // @comments 已离开房间
 // @receive
 message GomokuLeft {}
+
+// @comments 解散房间
+// @post
+message GomokuDismiss {}
+
+// @comments 因房间解散已离开房间
+// @receive
+message GomokuLeftByDismiss {}
 
 // @comments 开始游戏
 // @post

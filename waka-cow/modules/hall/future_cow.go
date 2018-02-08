@@ -33,7 +33,13 @@ func (my *actorT) NiuniuQueryPayForAnotherRoomListRequest(player *playerT,
 	rooms := my.cowRooms.
 		WherePayForAnother().
 		WhereCreator(player.Player)
-	respond(&waka.NiuniuQueryPayForAnotherRoomListResponse{rooms.NiuniuRoomData1()}, nil)
+
+	pb := rooms.NiuniuRoomData1()
+	sort.Slice(pb, func(i, j int) bool {
+		return pb[i].Id < pb[j].Id
+	})
+
+	respond(&waka.NiuniuQueryPayForAnotherRoomListResponse{pb}, nil)
 }
 
 func (my *actorT) NiuniuQueryAgentRoomCountRequest(player *playerT,
@@ -68,10 +74,6 @@ func (my *actorT) NiuniuQueryAgentRoomListRequest(player *playerT,
 			pb = pb[int(ev.Range.Start):int(ev.Range.Start+ev.Range.Number)]
 		}
 	}
-
-	sort.Slice(pb, func(i, j int) bool {
-		return pb[i].Id < pb[j].Id
-	})
 
 	respond(&waka.NiuniuQueryAgentRoomListResponse{pb}, nil)
 }

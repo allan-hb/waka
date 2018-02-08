@@ -40,7 +40,7 @@ func init() {
 		new(FreezeData),
 		new(SupervisorData),
 		new(SupervisorRoomBlacklist),
-		new(CowPlayerRoomPurchaseHistory),
+		new(CowRoomPurchaseHistory),
 		new(CowGoldRoomPurchaseHistory),
 		new(GomokuPurchaseHistory),
 		new(BonusHistory),

@@ -938,17 +938,17 @@ func (r *supervisorRoomT) loopSettle() bool {
 		player.Round.PokersRate = int32(pr)
 	}
 
-	var goldRoomCost []*database.CowGoldRoomCost
+	var goldRoomCost []*database.CowGoldCost
 	for _, player := range players {
-		var c *database.CowGoldRoomCost
+		var c *database.CowGoldCost
 		if player.Round.Points > 0 {
-			c = &database.CowGoldRoomCost{
+			c = &database.CowGoldCost{
 				Victory: player.Player,
 				Loser:   banker.Player,
 				Number:  player.Round.Points * 100,
 			}
 		} else {
-			c = &database.CowGoldRoomCost{
+			c = &database.CowGoldCost{
 				Victory: banker.Player,
 				Loser:   player.Player,
 				Number:  player.Round.Points * 100 * (-1),

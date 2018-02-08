@@ -509,9 +509,11 @@ func (r *payForAnotherRoomT) Start(player *playerT) {
 				return
 			}
 
-			err := database.CowPayForAnotherRoomSettle(r.Id, &database.CowPlayerRoomCost{
-				Player: r.Creator,
-				Number: r.CostMoney() * 100,
+			err := database.CowRoomCostSettle(r.Id, []*database.CowRoomCost{
+				{
+					Player: r.Creator,
+					Number: r.CostMoney() * 100,
+				},
 			})
 			if err != nil {
 				log.WithFields(logrus.Fields{

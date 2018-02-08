@@ -537,21 +537,21 @@ func (r *orderRoomT) Start(player *playerT) {
 				return
 			}
 
-			var playerRoomCost []*database.CowPlayerRoomCost
+			var playerRoomCost []*database.CowRoomCost
 			if r.Option.IsAA {
 				for _, player := range r.Players {
-					playerRoomCost = append(playerRoomCost, &database.CowPlayerRoomCost{
+					playerRoomCost = append(playerRoomCost, &database.CowRoomCost{
 						Player: player.Player,
 						Number: r.CostMoney() * 100,
 					})
 				}
 			} else {
-				playerRoomCost = append(playerRoomCost, &database.CowPlayerRoomCost{
+				playerRoomCost = append(playerRoomCost, &database.CowRoomCost{
 					Player: r.Owner,
 					Number: r.CostMoney() * 100,
 				})
 			}
-			err := database.CowOrderRoomSettle(r.Id, playerRoomCost)
+			err := database.CowRoomCostSettle(r.Id, playerRoomCost)
 			if err != nil {
 				log.WithFields(logrus.Fields{
 					"room_id": r.Id,

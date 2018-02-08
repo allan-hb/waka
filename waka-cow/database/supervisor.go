@@ -57,6 +57,11 @@ func (SupervisorData) TableName() string {
 	return "supervisors"
 }
 
+func (supervisor *SupervisorData) BonusRateNumber(number int32) int32 {
+	rate := float64(supervisor.BonusRate) / 100
+	return int32(rate*float64(number) + 0.5)
+}
+
 // ---------------------------------------------------------------------------------------------------------------------
 
 var (

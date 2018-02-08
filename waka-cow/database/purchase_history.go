@@ -4,8 +4,8 @@ import (
 	"time"
 )
 
-// 牛牛约战/代开房间消费记录
-type CowPlayerRoomPurchaseHistory struct {
+// 牛牛场费消费记录
+type CowRoomPurchaseHistory struct {
 	// 主键
 	Ref int32 `gorm:"index;primary_key;AUTO_INCREMENT"`
 	// 谁
@@ -18,9 +18,13 @@ type CowPlayerRoomPurchaseHistory struct {
 	CreatedAt time.Time
 }
 
+func (CowRoomPurchaseHistory) TableName() string {
+	return "cow_player_room_purchase_histories"
+}
+
 // ---------------------------------------------------------------------------------------------------------------------
 
-// 牛牛代理房间消费记录
+// 牛牛金币消费记录
 type CowGoldRoomPurchaseHistory struct {
 	// 主键
 	Ref int32 `gorm:"index;primary_key;AUTO_INCREMENT"`
@@ -84,27 +88,9 @@ func newBonusByRedPaperBag(supervisor, player Player, number, purchase int32) *B
 	return bonus
 }
 
-func newBonusByGomokuCost(supervisor, player Player, number, purchase int32) *BonusHistory {
+func newBonusByRoomCost(supervisor, player Player, number, purchase int32) *BonusHistory {
 	bonus := newBonus(supervisor, player, number, purchase)
-	bonus.Reason = "gomoku"
-	return bonus
-}
-
-func newBonusByGoldRoomCost(supervisor, player Player, number, purchase int32) *BonusHistory {
-	bonus := newBonus(supervisor, player, number, purchase)
-	bonus.Reason = "gold_room_cost"
-	return bonus
-}
-
-func newBonusByPayForAnotherRoomCost(supervisor, player Player, number, purchase int32) *BonusHistory {
-	bonus := newBonus(supervisor, player, number, purchase)
-	bonus.Reason = "pay_for_another_room_cost"
-	return bonus
-}
-
-func newBonusByPlayerRoomCost(supervisor, player Player, number, purchase int32) *BonusHistory {
-	bonus := newBonus(supervisor, player, number, purchase)
-	bonus.Reason = "order_room_cost"
+	bonus.Reason = "cow_cost"
 	return bonus
 }
 

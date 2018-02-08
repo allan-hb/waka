@@ -369,6 +369,7 @@ func (bag *lever28BagT) settle() {
 		cost.Players = append(cost.Players, &database.Lever28PlayerCost{
 			Player: player.Player,
 			Grab:   player.Grab + player.Get,
+			Charge: player.GrabCharge + player.GetCharge,
 			Pay:    player.Pay + 10*100,
 			Freeze: player.Freeze,
 		})

@@ -355,19 +355,20 @@ func (bag *redBagT) settle() {
 	bag.Creator.Cost = bag.CreateMoney()
 
 	// 结算
-	creatorCost := &database.RedCreatorCost{
-		Player: bag.Creator.Player,
-		Grab:   bag.Creator.Get,
-		Pay:    bag.Creator.Cost,
-		Freeze: bag.Creator.Freeze,
-	}
 	cost := &database.RedBagCost{
-		Creator: creatorCost,
+		Creator: &database.RedCreatorCost{
+			Player: bag.Creator.Player,
+			Get:    bag.Creator.Get,
+			Charge: bag.Creator.Charge,
+			Cost:   bag.Creator.Cost,
+			Freeze: bag.Creator.Freeze,
+		},
 	}
 	for _, player := range bag.Players {
 		cost.Players = append(cost.Players, &database.RedPlayerCost{
 			Player: player.Player,
 			Grab:   player.Grab,
+			Charge: player.Charge,
 			Pay:    player.Pay,
 			Freeze: player.Freeze,
 		})

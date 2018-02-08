@@ -304,6 +304,10 @@ func (my *actorT) sendGomokuLeft(player database.Player) {
 	my.send(player, &waka.GomokuLeft{})
 }
 
+func (my *actorT) sendGomokuLeftByDismiss(player database.Player) {
+	my.send(player, &waka.GomokuLeftByDismiss{})
+}
+
 func (my *actorT) sendGomokuUpdateRoom(player database.Player, room *gomokuRoomT) {
 	my.send(player, &waka.GomokuUpdateRoom{room.GomokuRoom()})
 }
@@ -349,6 +353,15 @@ func (my *actorT) sendGomokuLeftForAll(room *gomokuRoomT) {
 	}
 	if room.Student != nil {
 		my.sendGomokuLeft(room.Student.Player)
+	}
+}
+
+func (my *actorT) sendGomokuLeftByDismissForAll(room *gomokuRoomT) {
+	if room.Creator != nil {
+		my.sendGomokuLeftByDismiss(room.Creator.Player)
+	}
+	if room.Student != nil {
+		my.sendGomokuLeftByDismiss(room.Student.Player)
 	}
 }
 

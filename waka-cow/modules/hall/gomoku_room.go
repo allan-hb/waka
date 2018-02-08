@@ -152,6 +152,22 @@ func (r *gomokuRoomT) Leave(player *playerT) {
 	}
 }
 
+func (r *gomokuRoomT) Dismiss(player *playerT) {
+	r.Hall.sendGomokuLeftByDismissForAll(r)
+	delete(r.Hall.gomokuRooms, r.Id)
+	r.Hall.gomokuNumberPool.Return(r.Id)
+	if r.Creator != nil {
+		if player := r.Hall.players[r.Creator.Player]; player != nil {
+			player.InsideGomoku = 0
+		}
+	}
+	if r.Student != nil {
+		if player := r.Hall.players[r.Student.Player]; player != nil {
+			player.InsideGomoku = 0
+		}
+	}
+}
+
 func (r *gomokuRoomT) Start(player *playerT) {
 	if r.Creator == nil {
 		return

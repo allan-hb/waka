@@ -16,6 +16,8 @@ func (my *actorT) playerTransportedGomoku(player *playerT, ev *supervisor_messag
 		my.GomokuSetCost(player, evd)
 	case *waka.GomokuLeave:
 		my.GomokuLeave(player, evd)
+	case *waka.GomokuDismiss:
+		my.GomokuDismiss(player, evd)
 	case *waka.GomokuStart:
 		my.GomokuStart(player, evd)
 	case *waka.GomokuPlay:
@@ -186,6 +188,27 @@ func (my *actorT) GomokuLeave(player *playerT, ev *waka.GomokuLeave) {
 	}
 
 	room.Leave(player)
+}
+
+func (my *actorT) GomokuDismiss(player *playerT, ev *waka.GomokuDismiss) {
+	if player.InsideGomoku == 0 {
+		log.WithFields(logrus.Fields{
+			"player": player.Player,
+		}).Warnln("dismiss gomoku room but not in room")
+		return
+	}
+
+	room, being := my.gomokuRooms[player.InsideGomoku]
+	if !being {
+		log.WithFields(logrus.Fields{
+			"player": player.Player,
+			"id":     player.InsideGomoku,
+		}).Warnln("dismiss gomoku room but room not found")
+		player.InsideGomoku = 0
+		return
+	}
+
+	room.Dismiss(player)
 }
 
 func (my *actorT) GomokuStart(player *playerT, ev *waka.GomokuStart) {

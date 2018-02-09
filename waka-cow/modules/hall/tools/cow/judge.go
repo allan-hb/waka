@@ -11,7 +11,7 @@ import "fmt"
 // flush 同花
 // straight 顺子
 // 计算模式
-func GetPokersPattern(pokers []string, mode int32) (weight int, pattern string, rate int, e error) {
+func GetPokersPattern(pokers []string, mode int32) (weight int32, pattern string, rate int32, e error) {
 	if !isLegalPokers(pokers) {
 		return -1, "", -1, ErrIllegalPokers
 	}
@@ -134,7 +134,7 @@ func GetPokersPattern(pokers []string, mode int32) (weight int, pattern string, 
 }
 
 // 搜索最佳模式
-func SearchBestPokerPattern(pokers []string, mode int32) (best []string, weight int, pattern string, rate int, e error) {
+func SearchBestPokerPattern(pokers []string, mode int32) (best []string, weight int32, pattern string, rate int32, e error) {
 	if !isLegalPokers(pokers) {
 		return nil, -1, "", -1, ErrIllegalPokers
 	}

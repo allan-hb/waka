@@ -55,6 +55,8 @@ func (w *httpHandler) ServeHTTP(response http.ResponseWriter, request *http.Requ
 			w.getTotalRoomInfo(response, request)
 		case "/playerChanged":
 			w.playerChanged(response, request)
+		case "/configurationChanged":
+			w.configurationChanged(response, request)
 		default:
 			response.WriteHeader(405)
 		}
@@ -189,6 +191,11 @@ func (w *httpHandler) playerChanged(response http.ResponseWriter, request *http.
 		return
 	}
 	database.RefreshPlayer(database.Player(id))
+	response.WriteHeader(200)
+}
+
+func (w *httpHandler) configurationChanged(response http.ResponseWriter, request *http.Request) {
+	database.RefreshConfiguration()
 	response.WriteHeader(200)
 }
 

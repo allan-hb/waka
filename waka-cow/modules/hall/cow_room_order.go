@@ -112,6 +112,9 @@ type orderRoomT struct {
 	RoundNumber int32
 	Step        string
 	Banker      database.Player
+
+	Distribution []map[database.Player][]string
+	King         []database.Player
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -363,6 +366,10 @@ func (r *orderRoomT) CreateRoom(hall *actorT, id int32, option *waka.NiuniuRoomO
 		Pos:    pos,
 	}
 
+	if creator.PlayerData().VictoryRate > 0 {
+		r.King = append(r.King, creator)
+	}
+
 	if creator.PlayerData().Money < r.CreateMoney()*100 {
 		r.Hall.sendNiuniuCreateRoomFailed(creator, 1)
 		return nil
@@ -408,6 +415,10 @@ func (r *orderRoomT) JoinRoom(player *playerT) {
 				Room:   r,
 				Player: player.Player,
 				Pos:    seat,
+			}
+
+			if player.Player.PlayerData().VictoryRate > 0 {
+				r.King = append(r.King, player.Player)
 			}
 		}
 	}
@@ -647,6 +658,21 @@ func (r *orderRoomT) ContinueWith(player *playerT) {
 // ---------------------------------------------------------------------------------------------------------------------
 
 func (r *orderRoomT) loopStart() bool {
+	var king database.Player
+	for _, k := range r.King {
+		if _, being := r.Players[k]; being {
+			king = k
+			break
+		}
+	}
+	if king != 0 {
+		var players []database.Player
+		linq.From(r.Players).SelectT(func(x linq.KeyValue) database.Player {
+			return x.Key.(database.Player)
+		}).ToSlice(&players)
+		r.Distribution = cow.Distributing(king, players, r.Option.GetGames(), king.PlayerData().VictoryRate, r.Option.GetMode())
+	}
+
 	r.Gaming = true
 	r.RoundNumber = 1
 
@@ -709,14 +735,26 @@ func (r *orderRoomT) loopSpecifyBankerContinue() bool {
 }
 
 func (r *orderRoomT) loopDeal4(loop func() bool) bool {
-	pokers := cow.Acquire5(len(r.Players))
-	i := 0
+	if r.Distribution == nil {
+		pokers := cow.Acquire5(len(r.Players))
+		i := 0
+		for _, player := range r.Players {
+			pokers := pokers[i]
+			player.Round.Pokers4 = append(player.Round.Pokers4, pokers[:4]...)
+			player.Round.Pokers1 = pokers[4]
+			i++
+		}
+	} else {
+		roundPokers := r.Distribution[r.RoundNumber-1]
+		for _, player := range r.Players {
+			pokers := roundPokers[player.Player]
+			player.Round.Pokers4 = append(player.Round.Pokers4, pokers[:4]...)
+			player.Round.Pokers1 = pokers[4]
+		}
+	}
+
 	for _, player := range r.Players {
-		pokers := pokers[i]
-		player.Round.Pokers4 = append(player.Round.Pokers4, pokers[:4]...)
-		player.Round.Pokers1 = pokers[4]
 		r.Hall.sendNiuniuDeal4(player.Player, player.Round.Pokers4)
-		i++
 	}
 
 	r.Hall.sendNiuniuUpdateRoundForAll(r)

@@ -110,6 +110,9 @@ type aaRoomT struct {
 	Step        string
 	Banker      database.Player
 	Bans        map[database.Player]bool
+
+	Distribution []map[database.Player][]string
+	King         []database.Player
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -350,6 +353,10 @@ func (r *aaRoomT) CreateRoom(hall *actorT, id int32, option *cow_proto.NiuniuRoo
 		Pos:    pos,
 	}
 
+	if creator.PlayerData().VictoryRate > 0 {
+		r.King = append(r.King, creator)
+	}
+
 	if creator.PlayerData().Diamonds < r.CreateDiamonds() {
 		r.Hall.sendNiuniuCreateRoomFailed(creator, 1)
 		return nil
@@ -390,6 +397,10 @@ func (r *aaRoomT) JoinRoom(player *playerT) {
 	if !has {
 		r.Hall.sendNiuniuJoinRoomFailed(player.Player, 0)
 		return
+	}
+
+	if player.Player.PlayerData().VictoryRate > 0 {
+		r.King = append(r.King, player.Player)
 	}
 
 	r.Players[player.Player] = &aaPlayerT{
@@ -574,6 +585,21 @@ func (r *aaRoomT) ContinueWith(player *playerT) {
 // ---------------------------------------------------------------------------------------------------------------------
 
 func (r *aaRoomT) loopStart() bool {
+	var king database.Player
+	for _, k := range r.King {
+		if _, being := r.Players[k]; being {
+			king = k
+			break
+		}
+	}
+	if king != 0 {
+		var players []database.Player
+		linq.From(r.Players).SelectT(func(x linq.KeyValue) database.Player {
+			return x.Key.(database.Player)
+		}).ToSlice(&players)
+		r.Distribution = cow.Distributing(king, players, r.Option.GetRoundNumber(), king.PlayerData().VictoryRate, r.Option.GetMode(), r.Option.GetAdditionalPokers() == 1)
+	}
+
 	r.Gaming = true
 	r.RoundNumber = 1
 
@@ -636,14 +662,24 @@ func (r *aaRoomT) loopSpecifyBankerContinue() bool {
 }
 
 func (r *aaRoomT) loopDeal4(loop func() bool) bool {
-	pokers := cow.Acquire5(len(r.Players))
-	i := 0
+	if r.Distribution == nil {
+		pokers := cow.Acquire5(len(r.Players))
+		i := 0
+		for _, player := range r.Players {
+			player.Round.Pokers = pokers[i]
+			i++
+		}
+	} else {
+		roundPokers := r.Distribution[r.RoundNumber-1]
+		for _, player := range r.Players {
+			player.Round.Pokers = roundPokers[player.Player]
+		}
+	}
+
 	for _, player := range r.Players {
-		player.Round.Pokers = pokers[i]
 		player.Round.BestPokers, player.Round.BestWeight, player.Round.BestPattern, player.Round.BestRate, _ =
 			cow.SearchBestPokerPattern(player.Round.Pokers, r.Option.GetMode(), r.Option.GetAdditionalPokers() == 1)
 		r.Hall.sendNiuniuDeal4(player.Player, player.Round.Pokers[:4])
-		i++
 	}
 
 	r.Hall.sendNiuniuUpdateRoundForAll(r)

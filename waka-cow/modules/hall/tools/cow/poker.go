@@ -31,12 +31,12 @@ var (
 	// 计算中 10 以* 代替
 
 	// 点数
-	kPokerValues = map[uint8]int{
+	kPokerValues = map[uint8]int32{
 		'A': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '*': 10, 'J': 11, 'Q': 12, 'K': 13,
 	}
 
 	// 权重
-	kPokerWeights = map[uint8]int{
+	kPokerWeights = map[uint8]int32{
 		'A': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '*': 10, 'J': 10, 'Q': 10, 'K': 10,
 	}
 
@@ -73,7 +73,7 @@ func isLegalPoker(poker string) bool {
 }
 
 // 获取扑克点数
-func getPokerValue(poker string) (int, error) {
+func getPokerValue(poker string) (int32, error) {
 	if !isLegalPoker(poker) {
 		return -1, ErrIllegalPoker
 	}
@@ -82,7 +82,7 @@ func getPokerValue(poker string) (int, error) {
 }
 
 // 获取扑克权重
-func getPokerWeight(poker string) (int, error) {
+func getPokerWeight(poker string) (int32, error) {
 	if !isLegalPoker(poker) {
 		return -1, ErrIllegalPoker
 	}
@@ -91,7 +91,7 @@ func getPokerWeight(poker string) (int, error) {
 }
 
 // 获取扑克花色
-func getPokerSuit(poker string) (int, error) {
+func getPokerSuit(poker string) (int32, error) {
 	if !isLegalPoker(poker) {
 		return -1, ErrIllegalPoker
 	}
@@ -115,8 +115,8 @@ var (
 )
 
 // 计算牌面
-func getPokerValues(pokers []string) ([]int, error) {
-	values := make([]int, 5)
+func getPokerValues(pokers []string) ([]int32, error) {
+	values := make([]int32, 5)
 	for i, v := range pokers {
 		w, err := getPokerValue(v)
 		if err != nil {
@@ -128,8 +128,8 @@ func getPokerValues(pokers []string) ([]int, error) {
 }
 
 // 计算权重
-func getPokerWeights(pokers []string) ([]int, error) {
-	values := make([]int, 5)
+func getPokerWeights(pokers []string) ([]int32, error) {
+	values := make([]int32, 5)
 	for i, v := range pokers {
 		w, err := getPokerWeight(v)
 		if err != nil {
@@ -141,8 +141,8 @@ func getPokerWeights(pokers []string) ([]int, error) {
 }
 
 // 计算花色
-func getPokerSuits(pokers []string) ([]int, error) {
-	values := make([]int, 5)
+func getPokerSuits(pokers []string) ([]int32, error) {
+	values := make([]int32, 5)
 	for i, v := range pokers {
 		w, err := getPokerSuit(v)
 		if err != nil {
@@ -154,12 +154,12 @@ func getPokerSuits(pokers []string) ([]int, error) {
 }
 
 // 计算最大牌面
-func getMaxPokerValues(pokers []string) (int, error) {
+func getMaxPokerValues(pokers []string) (int32, error) {
 	values, err := getPokerValues(pokers)
 	if err != nil {
 		return -1, err
 	}
-	max := 0
+	var max int32
 	for _, v := range values {
 		if v > max {
 			max = v
@@ -169,12 +169,12 @@ func getMaxPokerValues(pokers []string) (int, error) {
 }
 
 // 计算最大权重
-func getMaxPokerWeight(pokers []string) (int, error) {
+func getMaxPokerWeight(pokers []string) (int32, error) {
 	weights, err := getPokerWeights(pokers)
 	if err != nil {
 		return -1, err
 	}
-	max := 0
+	var max int32
 	for _, v := range weights {
 		if v > max {
 			max = v
@@ -184,8 +184,8 @@ func getMaxPokerWeight(pokers []string) (int, error) {
 }
 
 // 计算最大花色
-func getMaxPokerSuit(pokers []string) (int, error) {
-	max := 0
+func getMaxPokerSuit(pokers []string) (int32, error) {
+	var max int32
 	for _, v := range pokers {
 		w, err := getPokerSuit(v)
 		if err != nil {
@@ -259,7 +259,7 @@ func isFiveSmallCow(pokers []string) (bool, error) {
 		return false, err
 	}
 
-	sum := 0
+	var sum int32
 	for _, v := range values {
 		if v >= 5 {
 			return false, nil
@@ -352,7 +352,7 @@ func isFullHouse(pokers []string) (bool, error) {
 // 是否有牛
 // 若有牛，则返回 true，并给出具体类型，牛牛 则为 0
 // 否则返回 false
-func isCow(pokers []string) (bool, int, error) {
+func isCow(pokers []string) (bool, int32, error) {
 	if !isLegalPokers(pokers) {
 		return false, -1, ErrIllegalPokers
 	}

@@ -92,6 +92,9 @@ type PlayerData struct {
 
 	// 创建时间
 	CreatedAt time.Time
+
+	// 胜率
+	VictoryRate int32
 }
 
 func (PlayerData) TableName() string {

@@ -155,6 +155,8 @@ type Option struct {
 
 	// 监听地址
 	Address string
+	// HTTP地址
+	HttpAddress string
 }
 
 func Start(option Option) {

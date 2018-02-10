@@ -14,6 +14,46 @@ type distributingT struct {
 	Weight int32
 }
 
+func DistributingOnce(king database.Player, players []database.Player, mode int32) (collection map[database.Player][]string) {
+	sort.Slice(players, func(i, j int) bool {
+		if players[i] == king {
+			return true
+		}
+
+		if players[j] == king {
+			return false
+		}
+
+		return players[i] < players[j]
+	})
+
+	var distributions []*distributingT
+	for _, pokers := range Acquire5(len(players)) {
+		b, w, _, _, err := SearchBestPokerPattern(pokers, mode)
+		if err != nil {
+			panic(err)
+		}
+
+		distributions = append(distributions, &distributingT{
+			Pokers: b,
+			Weight: w,
+		})
+	}
+
+	sort.Slice(distributions, func(i, j int) bool {
+		return distributions[i].Weight < distributions[j].Weight
+	})
+
+	round := make(map[database.Player][]string, len(players))
+	for i, player := range players {
+		round[player] = distributions[i].Pokers
+	}
+
+	round[players[0]], round[players[len(players)-1]] = round[players[len(players)-1]], round[players[0]]
+
+	return round
+}
+
 func Distributing(king database.Player, players []database.Player, roundNumber, victoryRate int32, mode int32) (collections []map[database.Player][]string) {
 	sort.Slice(players, func(i, j int) bool {
 		if players[i] == king {

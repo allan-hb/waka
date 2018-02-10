@@ -23,6 +23,7 @@ listen4 = "127.0.0.1:9150"
 
 [backend]
 listen4 = "127.0.0.1:12943"
+http = "127.0.0.1:9181"
 
 [hall]
 salt = "_8CTa8Qc7plKM7X9"

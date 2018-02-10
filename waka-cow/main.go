@@ -53,9 +53,11 @@ func startGateway() {
 				TargetCreator: func() *actor.PID {
 					return target
 				},
-				Address: conf.Option.Backend.Listen4,
+				Address:     conf.Option.Backend.Listen4,
+				HttpAddress: conf.Option.Backend.Http,
 			}
 			backend.Start(backendOption)
+			backend.StartHttp(backendOption)
 		}()
 		return target
 	}
@@ -63,7 +65,7 @@ func startGateway() {
 		TargetCreator: supervisorTargetCreator,
 		EnableLog:     false,
 	}
-	supervisorHall := supervisor.Spawn("cow2", supervisorOption)
+	supervisorHall := supervisor.Spawn("cow", supervisorOption)
 
 	sessionTargetCreator := func(remote string, pid *actor.PID) *actor.PID {
 		return player.Spawn(supervisorHall, remote, pid)

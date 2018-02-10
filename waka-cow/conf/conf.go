@@ -30,6 +30,7 @@ type Gateway struct {
 
 type Backend struct {
 	Listen4 string `toml:"listen4"`
+	Http    string `toml:"http"`
 }
 
 type Hall struct {

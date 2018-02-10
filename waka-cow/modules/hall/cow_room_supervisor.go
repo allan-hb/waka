@@ -14,6 +14,10 @@ import (
 	"gopkg.in/ahmetb/go-linq.v3"
 )
 
+var (
+	rnd = rand.New(rand.NewSource(time.Now().Unix()))
+)
+
 type supervisorRoundPlayerT struct {
 	// 得分
 	Points int32
@@ -101,6 +105,9 @@ type supervisorRoomT struct {
 	Gaming bool
 	Step   string
 	Banker database.Player
+
+	King         []database.Player
+	Distribution map[database.Player][]string
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -408,6 +415,10 @@ func (r *supervisorRoomT) JoinRoom(player *playerT) {
 					"owner":   r.Owner,
 				}).Debugln("owner changed")
 			}
+
+			if player.Player.PlayerData().VictoryRate > 0 {
+				r.King = append(r.King, player.Player)
+			}
 		}
 	}
 
@@ -523,6 +534,10 @@ func (r *supervisorRoomT) SwitchRole(player *playerT) {
 				}).Debugln("owner changed")
 			}
 
+			if player.Player.PlayerData().VictoryRate > 0 {
+				r.King = append(r.King, player.Player)
+			}
+
 			r.buildStart()
 		}
 
@@ -596,6 +611,35 @@ func (r *supervisorRoomT) ContinueWith(player *playerT) {
 // ---------------------------------------------------------------------------------------------------------------------
 
 func (r *supervisorRoomT) loopStart() bool {
+	var idx int
+	var king database.Player
+	for i, k := range r.King {
+		if _, being := r.Players[k]; being {
+			king = k
+			idx = i
+			break
+		}
+	}
+	if king != 0 {
+		r.King = r.King[idx:]
+
+		var players []database.Player
+		linq.From(r.Players).SelectT(func(x linq.KeyValue) database.Player {
+			return x.Key.(database.Player)
+		}).ToSlice(&players)
+
+		victoryRate := float64(king.PlayerData().VictoryRate) / 100
+		randRate := rnd.Float64()
+		log.WithFields(logrus.Fields{
+			"king":         king,
+			"victory_rate": victoryRate,
+			"rand_rate":    randRate,
+		}).Debugln("control rate")
+		if randRate < victoryRate {
+			r.Distribution = cow.DistributingOnce(king, players, r.Mode)
+		}
+	}
+
 	r.Gaming = true
 
 	r.Hall.sendNiuniuStartedForAll(r, 1)
@@ -635,14 +679,25 @@ func (r *supervisorRoomT) loopStart() bool {
 }
 
 func (r *supervisorRoomT) loopDeal4(loop func() bool) bool {
-	pokers := cow.Acquire5(len(r.Players))
-	i := 0
+	if r.Distribution == nil {
+		pokers := cow.Acquire5(len(r.Players))
+		i := 0
+		for _, player := range r.Players {
+			pokers := pokers[i]
+			player.Round.Pokers4 = append(player.Round.Pokers4, pokers[:4]...)
+			player.Round.Pokers1 = pokers[4]
+			i++
+		}
+	} else {
+		for _, player := range r.Players {
+			pokers := r.Distribution[player.Player]
+			player.Round.Pokers4 = append(player.Round.Pokers4, pokers[:4]...)
+			player.Round.Pokers1 = pokers[4]
+		}
+	}
+
 	for _, player := range r.Players {
-		pokers := pokers[i]
-		player.Round.Pokers4 = append(player.Round.Pokers4, pokers[:4]...)
-		player.Round.Pokers1 = pokers[4]
 		r.Hall.sendNiuniuDeal4(player.Player, player.Round.Pokers4)
-		i++
 	}
 
 	r.Hall.sendNiuniuUpdateRoundForAll(r)
@@ -1039,6 +1094,7 @@ func (r *supervisorRoomT) loopClean() bool {
 	r.Step = ""
 	r.Banker = 0
 	r.Gaming = false
+	r.Distribution = nil
 
 	for _, player := range r.Players {
 		if playerData := r.Hall.players[player.Player]; playerData == nil || playerData.Remote == "" {

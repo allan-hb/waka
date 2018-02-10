@@ -321,8 +321,8 @@ func (r *gomokuRoomT) loopSettle() bool {
 		}).Warnln("gomoku add history failed")
 	}
 
-	r.Hall.sendGomokuVictory(r.ThisPlayer.Player)
-	r.Hall.sendGomokuLost(r.AnotherPlayer.Player)
+	r.Hall.sendGomokuVictory(r.ThisPlayer.Player, r.ThisPlayer.Player, r.AnotherPlayer.Player)
+	r.Hall.sendGomokuLost(r.AnotherPlayer.Player, r.ThisPlayer.Player, r.AnotherPlayer.Player)
 	delete(r.Hall.gomokuRooms, r.Id)
 	r.Hall.gomokuNumberPool.Return(r.Id)
 

@@ -328,12 +328,12 @@ func (my *actorT) sendGomokuUpdateRound(player database.Player, room *gomokuRoom
 	my.send(player, &waka.GomokuUpdateRound{room.RoundNumber, room.Board.ToSlice()})
 }
 
-func (my *actorT) sendGomokuVictory(player database.Player) {
-	my.send(player, &waka.GomokuVictory{})
+func (my *actorT) sendGomokuVictory(player, victory, loser database.Player) {
+	my.send(player, &waka.GomokuVictory{victory.PlayerData().Money, loser.PlayerData().Money})
 }
 
-func (my *actorT) sendGomokuLost(player database.Player) {
-	my.send(player, &waka.GomokuLost{})
+func (my *actorT) sendGomokuLost(player, victory, loser database.Player) {
+	my.send(player, &waka.GomokuLost{victory.PlayerData().Money, loser.PlayerData().Money})
 }
 
 // ----------------------------------------------------

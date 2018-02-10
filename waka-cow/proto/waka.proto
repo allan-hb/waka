@@ -1160,11 +1160,21 @@ message GomokuSurrender {}
 
 // @comments 你赢了
 // @receive
-message GomokuVictory {}
+message GomokuVictory {
+    // 胜者金币
+    int32 victory_money = 1;
+    // 败者金币
+    int32 loser_money = 2;
+}
 
 // @comments 你输了
 // @receive
-message GomokuLost {}
+message GomokuLost {
+    // 胜者金币
+    int32 victory_money = 1;
+    // 败者金币
+    int32 loser_money = 2;
+}
 
 // @comments 五子棋战绩
 message GomokuRecord {

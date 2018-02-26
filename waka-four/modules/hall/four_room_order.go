@@ -830,6 +830,10 @@ func (r *fourOrderRoomT) loopCompare() bool {
 func (r *fourOrderRoomT) loopCompareContinue() bool {
 	finally := true
 	for _, player := range r.Players {
+		if player := r.Hall.players[player.Player]; player == nil || player.Remote == "" {
+			continue
+		}
+
 		updated := player.Round.Sent
 		if !player.Round.ContinueWithCommitted {
 			finally = false

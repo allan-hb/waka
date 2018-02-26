@@ -41,8 +41,13 @@ func (my *actorT) transport(ev *session_message.Transport) {
 			my.TokenLogin(evd)
 		}
 	} else {
-		if my.hall != nil {
-			my.hall.Tell(&supervisor_message.PlayerTransport{uint64(my.player), ev.Payload})
+		switch evd := ev.Payload.(type) {
+		case *cow_proto.NiuniuShareContinue:
+			my.NiuniuShareContinue(evd)
+		default:
+			if my.hall != nil {
+				my.hall.Tell(&supervisor_message.PlayerTransport{uint64(my.player), ev.Payload})
+			}
 		}
 	}
 }

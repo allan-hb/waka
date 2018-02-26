@@ -28,4 +28,5 @@ listen4 = "127.0.0.1:9161"
 salt = "#22TaGOc7EFKs7@3"
 register_diamonds = 100
 bind_diamonds = 5
+share_diamonds = 10
 min_player_number = 500

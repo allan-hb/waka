@@ -36,6 +36,7 @@ type Hall struct {
 	Salt             string `toml:"salt"`
 	RegisterDiamonds int32  `toml:"register_diamonds"`
 	BindDiamonds     int32  `toml:"bind_diamonds"`
+	ShareDiamonds    int32  `toml:"share_diamonds"`
 	MinPlayerNumber  int32  `toml:"min_player_number"`
 }
 

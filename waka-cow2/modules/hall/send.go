@@ -80,8 +80,8 @@ func (my *actorT) sendNiuniuRoomJoined(player database.Player, room cowRoomT) {
 	my.send(player, &cow_proto.NiuniuRoomJoined{room.NiuniuRoomData1()})
 }
 
-func (my *actorT) sendNiuniuRoomCreated(player database.Player) {
-	my.send(player, &cow_proto.NiuniuRoomCreated{})
+func (my *actorT) sendNiuniuRoomCreated(player database.Player, id int32) {
+	my.send(player, &cow_proto.NiuniuRoomCreated{id})
 }
 
 func (my *actorT) sendNiuniuRoomLeft(player database.Player) {

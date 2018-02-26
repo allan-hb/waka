@@ -279,13 +279,13 @@ func (r *aaRoomT) BackendRoom() map[string]interface{} {
 		players = append(players, d)
 	}
 	return map[string]interface{}{
-		"id":           r.Id,
-		"option":       *r.Option,
-		"owner":        r.Owner,
-		"players":      players,
-		"round_number": r.RoundNumber,
-		"status":       r.Step,
-		"banker":       r.Banker,
+		"id":       r.Id,
+		"option":   *r.Option,
+		"owner":    r.Owner,
+		"players":  players,
+		"rounding": r.RoundNumber,
+		"status":   r.Step,
+		"banker":   r.Banker,
 	}
 }
 
@@ -362,7 +362,7 @@ func (r *aaRoomT) CreateRoom(hall *actorT, id int32, option *cow_proto.NiuniuRoo
 		return nil
 	} else {
 		r.Hall.cowRooms[id] = r
-		r.Hall.sendNiuniuRoomCreated(creator)
+		r.Hall.sendNiuniuRoomCreated(creator, id)
 
 		r.Hall.players[creator].InsideCow = id
 		r.Hall.sendNiuniuRoomJoined(creator, r)

@@ -355,18 +355,6 @@ func (r *fourOrderRoomT) BackendRoom() map[string]interface{} {
 // ---------------------------------------------------------------------------------------------------------------------
 
 func (r *fourOrderRoomT) Left(player *playerT) {
-	if !r.Gaming {
-		if roomPlayer, being := r.Players[player.Player]; being {
-			if player.Player == r.Owner {
-			} else {
-				delete(r.Players, player.Player)
-				player.InsideFour = 0
-				r.Seats.Return(roomPlayer.Pos)
-			}
-		}
-	} else {
-	}
-
 	r.Hall.sendFourUpdateRoomForAll(r)
 }
 
@@ -751,13 +739,16 @@ func (r *fourOrderRoomT) loopCommitPokers() bool {
 func (r *fourOrderRoomT) loopCommitPokersContinue() bool {
 	finally := true
 	for _, player := range r.Players {
+		updated := player.Round.Sent
 		if !player.Round.PokersCommitted {
 			finally = false
 			if !player.Round.Sent {
 				r.Hall.sendFourDeal(player.Player, player.Round.Pokers)
-				r.Hall.sendFourUpdateContinueWithStatus(player.Player, r)
 				player.Round.Sent = true
 			}
+		}
+		if !updated {
+			r.Hall.sendFourUpdateContinueWithStatus(player.Player, r)
 		}
 	}
 
@@ -839,13 +830,16 @@ func (r *fourOrderRoomT) loopCompare() bool {
 func (r *fourOrderRoomT) loopCompareContinue() bool {
 	finally := true
 	for _, player := range r.Players {
+		updated := player.Round.Sent
 		if !player.Round.ContinueWithCommitted {
 			finally = false
 			if !player.Round.Sent {
 				r.Hall.sendFourCompare(player.Player, r)
-				r.Hall.sendFourUpdateContinueWithStatus(player.Player, r)
 				player.Round.Sent = true
 			}
+		}
+		if !updated {
+			r.Hall.sendFourUpdateContinueWithStatus(player.Player, r)
 		}
 	}
 
@@ -933,13 +927,16 @@ func (r *fourOrderRoomT) loopSettle() bool {
 func (r *fourOrderRoomT) loopSettleContinue() bool {
 	finally := true
 	for _, player := range r.Players {
+		updated := player.Round.Sent
 		if !player.Round.ContinueWithCommitted {
 			finally = false
 			if !player.Round.Sent {
 				r.Hall.sendFourSettle(player.Player, r)
-				r.Hall.sendFourUpdateContinueWithStatus(player.Player, r)
 				player.Round.Sent = true
 			}
+		}
+		if !updated {
+			r.Hall.sendFourUpdateContinueWithStatus(player.Player, r)
 		}
 	}
 
@@ -1031,13 +1028,16 @@ func (r *fourOrderRoomT) loopCutAnimation() bool {
 func (r *fourOrderRoomT) loopCutAnimationContinue() bool {
 	finally := true
 	for _, player := range r.Players {
+		updated := player.Round.Sent
 		if !player.Round.ContinueWithCommitted {
 			finally = false
 			if !player.Round.Sent {
 				r.Hall.sendFourRequireCutAnimation(player.Player, r.CutPos)
-				r.Hall.sendFourUpdateContinueWithStatus(player.Player, r)
 				player.Round.Sent = true
 			}
+		}
+		if !updated {
+			r.Hall.sendFourUpdateContinueWithStatus(player.Player, r)
 		}
 	}
 

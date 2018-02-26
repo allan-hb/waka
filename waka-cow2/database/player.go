@@ -5,8 +5,13 @@ import (
 	"time"
 
 	"github.com/jinzhu/gorm"
+	"github.com/pkg/errors"
 
 	"github.com/liuhan907/waka/waka-cow2/conf"
+)
+
+var (
+	ErrPlayerNotFound = errors.New("player not found")
 )
 
 // 玩家
@@ -64,6 +69,9 @@ type PlayerData struct {
 
 	// 胜率
 	VictoryRate int32
+
+	// 上次分享时间
+	SharedAt time.Time
 }
 
 func (PlayerData) TableName() string {
@@ -91,6 +99,7 @@ func RegisterPlayer(unionId, nickname string, head, token string) (*PlayerData, 
 		Diamonds:  conf.Option.Hall.RegisterDiamonds,
 		Ban:       0,
 		CreatedAt: time.Now(),
+		SharedAt:  time.Date(2018, 1, 1, 0, 0, 0, 0, time.Now().Location()),
 	}
 	if err := mysql.Create(player).Error; err != nil {
 		return nil, err
@@ -253,6 +262,67 @@ func QueryPlayerByWechatUid(uid string) (*PlayerData, bool, error) {
 	playersLock.Unlock()
 
 	return player, true, nil
+}
+
+// 分享送钻
+func PlayerShared(id Player) (int32, error) {
+	playerData, being, err := QueryPlayerById(id)
+	if err != nil {
+		return 0, err
+	}
+	if !being {
+		return 0, ErrPlayerNotFound
+	}
+
+	year, month, day := playerData.SharedAt.Date()
+	yearNow, monthNow, dayNow := time.Now().Date()
+	if yearNow <= year {
+		if monthNow <= month {
+			if dayNow <= day {
+				return 0, nil
+			}
+		}
+	}
+
+	var changed []Player
+	var modifies []*modifyDiamondsAction
+
+	modifies = append(modifies, &modifyDiamondsAction{
+		Player: id,
+		Number: conf.Option.Hall.ShareDiamonds,
+		After: func(ts *gorm.DB, modify *modifyDiamondsAction) error {
+			if err := ts.Model(new(PlayerData)).Where("id = ?", id).Updates(&PlayerData{
+				SharedAt: time.Now(),
+			}).Error; err != nil {
+				return err
+			}
+			return nil
+		},
+	})
+	changed = append(changed, id)
+
+	ts := mysql.Begin()
+
+	err = applyModifyDiamondsAction(ts, modifies)
+	if err != nil {
+		ts.Rollback()
+		return 0, err
+	}
+
+	ts.Commit()
+
+	playersLock.Lock()
+	for _, player := range changed {
+		playerData, being := playersByPlayer[player]
+		if being {
+			delete(playersByPlayer, player)
+			delete(playersByUnionId, playerData.UnionId)
+			delete(playersByToken, playerData.Token)
+		}
+	}
+	playersLock.Unlock()
+
+	return conf.Option.Hall.ShareDiamonds, nil
 }
 
 //刷新缓存

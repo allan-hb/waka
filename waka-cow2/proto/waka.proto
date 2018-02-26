@@ -237,7 +237,10 @@ message NiuniuCreateRoomFailed {
 
 // @comments 创建房间成功
 // @receive
-message NiuniuRoomCreated {}
+message NiuniuRoomCreated {
+    // 房间 ID
+    int32 id = 1;
+}
 
 // @comments 加入房间
 // @post
@@ -511,5 +514,9 @@ message NiuniuGetWarHistoryResponse {
     // 牛牛战绩
     repeated NiuniuWarHistory histories = 1;
 }
+
+// @comments 分享结束
+// @post
+message NiuniuShareContinue {}
 
 // --------------------------------------↑牛牛↑-----------------------------------------

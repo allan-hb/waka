@@ -167,7 +167,7 @@ namespace WakaSDK
         /// </summary>
         static public void Loop()
         {
-            if ((long)((DateTime.UtcNow - LastRemoteHeartTime).TotalSeconds) >= 30)
+            if ((long)((DateTime.UtcNow - LastRemoteHeartTime).TotalSeconds) >= 3)
             {
                 Close();
             }

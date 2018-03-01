@@ -873,6 +873,54 @@ func (r *aaRoomT) loopSpecifyRateContinue() bool {
 	}
 
 	r.tick = nil
+	r.loop = r.loopCommitConfirm
+
+	return true
+}
+
+func (r *aaRoomT) loopCommitConfirm() bool {
+	r.Step = "commit_confirm"
+	for _, player := range r.Players {
+		player.Round.Sent = false
+		player.Round.ContinueWithCommitted = false
+	}
+
+	r.Hall.sendNiuniuUpdateRoundForAll(r)
+
+	r.loop = r.loopCommitConfirmContinue
+	r.tick = buildTickNumber(
+		8,
+		func(number int32) {
+			r.Hall.sendNiuniuCountdownForAll(r, number)
+		},
+		func() {
+			for _, player := range r.Players {
+				player.Round.ContinueWithCommitted = true
+			}
+		},
+		r.Loop,
+	)
+
+	return true
+}
+
+func (r *aaRoomT) loopCommitConfirmContinue() bool {
+	finally := true
+	for _, player := range r.Players {
+		if !player.Round.ContinueWithCommitted {
+			finally = false
+			if !player.Round.Sent {
+				r.Hall.sendNiuniuRequireCommitConfirm(player.Player)
+				player.Round.Sent = true
+			}
+		}
+	}
+
+	if !finally {
+		return false
+	}
+
+	r.tick = nil
 	r.loop = r.loopSettle
 
 	return true

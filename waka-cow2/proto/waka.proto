@@ -574,6 +574,10 @@ message NiuniuSpecifyRate {
     int32 rate = 1;
 }
 
+// @comments 要求确认提交
+// @receive
+message NiuniuRequireCommitConfirm {}
+
 // @comments 小局结束
 // @receive
 message NiuniuRoundClear {

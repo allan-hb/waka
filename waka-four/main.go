@@ -61,7 +61,7 @@ func startGateway() {
 	}
 	supervisorOption := supervisor.Option{
 		TargetCreator: supervisorTargetCreator,
-		EnableLog:     false,
+		EnableLog:     conf.Option.Debug.SupervisorLog,
 	}
 	supervisorHall := supervisor.Spawn("four", supervisorOption)
 
@@ -71,8 +71,8 @@ func startGateway() {
 	sessionOption := session.Option{
 		TargetCreator:   sessionTargetCreator,
 		EnableHeart:     true,
-		EnableLog:       false,
-		EnableHeartLog:  false,
+		EnableLog:       conf.Option.Debug.SessionLog,
+		EnableHeartLog:  conf.Option.Debug.SessionHeartLog,
 		HeartPeriod:     time.Second * 3,
 		HeartDeadPeriod: time.Second * 3 * 10,
 	}

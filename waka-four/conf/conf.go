@@ -7,6 +7,12 @@ import (
 	"github.com/BurntSushi/toml"
 )
 
+type Debug struct {
+	SupervisorLog   bool `toml:"supervisor_log"`
+	SessionLog      bool `toml:"session_log"`
+	SessionHeartLog bool `toml:"session_heart_log"`
+}
+
 type Logger struct {
 	LogLevel uint32 `toml:"log_level"`
 	LogHeart bool   `toml:"log_heart"`
@@ -42,6 +48,7 @@ type Hall struct {
 }
 
 type T struct {
+	Debug    Debug    `toml:"debug"`
 	Log      Logger   `toml:"log"`
 	Install  Install  `toml:"install"`
 	Database Database `toml:"database"`

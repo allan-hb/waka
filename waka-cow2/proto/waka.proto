@@ -152,6 +152,144 @@ message Recover {
 
 // --------------------------------------↑大厅消息↑-----------------------------------------
 
+// @comments 拉取我的好友列表
+// @rpc response=NiuniuPullFriendsListResponse
+message NiuniuPullFriendsListRequest {}
+
+// @comments 拉取我的好友列表结果
+message NiuniuPullFriendsListResponse {
+    // 好友信息
+    message NiuniuFriend {
+        // 玩家 ID
+        int32 player_id = 1;
+        // 昵称
+        string nickname = 2;
+        // 是否在线
+        bool online = 3;
+    }
+
+    // 列表
+    repeated NiuniuFriend friends = 2;
+}
+
+
+// @comments 拉取添加列表
+// @rpc response=NiuniuPullWantListResponse
+message NiuniuPullWantListRequest {}
+
+// @comments 拉取添加列表结果
+message NiuniuPullWantListResponse {
+    // 好友信息
+    message NiuniuFriend {
+        // 玩家 ID
+        int32 player_id = 1;
+        // 昵称
+        string nickname = 2;
+        // 是否在线
+        bool online = 3;
+        // 状态
+        // 0 已发送
+        // 1 已拒绝
+        // 2 已通过
+        int32 status = 4;
+    }
+
+    // 列表
+    repeated NiuniuFriend friends = 2;
+}
+
+// @comments 拉取申请列表
+// @rpc response=NiuniuPullAskListResponse
+message NiuniuPullAskListRequest {}
+
+// @comments 拉取申请列表结果
+message NiuniuPullAskListResponse {
+    // 好友信息
+    message NiuniuFriend {
+        // 申请 ID
+        int32 number = 1;
+        // 玩家 ID
+        int32 player_id = 2;
+        // 昵称
+        string nickname = 3;
+        // 是否在线
+        bool online = 4;
+        // 状态
+        // 状态
+        // 0 未处理
+        // 1 已拒绝
+        // 2 已通过
+        int32 status = 5;
+    }
+
+    // 列表
+    repeated NiuniuFriend friends = 2;
+}
+
+// @comments 拉取屏蔽列表
+// @rpc response=NiuniuPullBanListResponse
+message NiuniuPullBanListRequest {}
+
+// @comments 拉取屏蔽列表结果
+message NiuniuPullBanListResponse {
+    // 好友信息
+    message NiuniuFriend {
+        // 玩家 ID
+        int32 player_id = 1;
+        // 昵称
+        string nickname = 2;
+        // 是否在线
+        bool online = 3;
+    }
+
+    // 列表
+    repeated NiuniuFriend friends = 2;
+}
+
+// @comments 屏蔽好友
+// @rpc response=NiuniuBanFriendResponse
+message NiuniuBanFriendRequest {
+    // 好友 ID
+    int32 player_id = 1;
+}
+
+// @comments 屏蔽好友结果
+message NiuniuBanFriendResponse {}
+
+// @comments 发送申请
+// @rpc response=NiuniuWantFriendResponse
+message NiuniuWantFriendRequest {
+    // 玩家 ID
+    int32 player_id = 1;
+}
+
+// @comments 发送申请结果
+message NiuniuWantFriendResponse {}
+
+// @comments 回应申请
+// @rpc response=NiuniuBecomeFriendResponse
+message NiuniuBecomeFriendRequest {
+    // 申请 ID
+    int32 number = 1;
+    // 操作
+    // 0 拒绝
+    // 1 通过
+    int32 operate = 2;
+}
+
+// @comments 回应申请结果
+message NiuniuBecomeFriendResponse {}
+
+// @comments 解除屏蔽好友
+// @rpc response=NiuniuCancelBanFriendResponse
+message NiuniuCancelBanFriendRequest {
+    // 好友 ID
+    int32 player_id = 1;
+}
+
+// @comments 解除屏蔽好友结果
+message NiuniuCancelBanFriendResponse {}
+
 // @comments 房间配置
 message NiuniuRoomOption {
     // 庄家模式
@@ -177,6 +315,8 @@ message NiuniuRoomOption {
     // 0 禁用
     // 1 启用
     int32 additional_pokers = 6;
+    // 私密房间
+    bool scret = 7;
 }
 
 // @comments 房间
@@ -259,6 +399,7 @@ message NiuniuJoinRoomFailed {
     // 3 房间不存在
     // 4 游戏已开始
     // 5 被禁止
+    // 6 私密
     int32 reason = 1;
 }
 

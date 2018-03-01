@@ -372,6 +372,13 @@ func (r *aaRoomT) CreateRoom(hall *actorT, id int32, option *cow_proto.NiuniuRoo
 }
 
 func (r *aaRoomT) JoinRoom(player *playerT) {
+	if r.Option.GetScret() {
+		if !database.QueryPlayerCanJoin(r.Owner, player.Player) {
+			r.Hall.sendNiuniuJoinRoomFailed(player.Player, 6)
+			return
+		}
+	}
+
 	if r.Bans[player.Player] {
 		r.Hall.sendNiuniuJoinRoomFailed(player.Player, 5)
 		return

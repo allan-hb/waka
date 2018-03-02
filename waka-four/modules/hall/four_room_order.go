@@ -463,23 +463,11 @@ func (r *fourOrderRoomT) LeaveRoom(player *playerT) {
 			r.Hall.sendFourLeftRoom(player.Player)
 
 			if r.Owner == player.Player {
-				r.Owner = 0
-				if len(r.Players) > 0 {
-					for _, player := range r.Players {
-						r.Owner = player.Player
-						break
-					}
-				}
-			}
-
-			if r.Owner == 0 {
 				delete(r.Hall.fourRooms, r.Id)
 				for _, player := range r.Players {
 					r.Hall.players[player.Player].InsideFour = 0
-					r.Hall.sendFourLeftRoom(player.Player)
+					r.Hall.sendFourLeftRoomByDismiss(player.Player)
 				}
-			} else {
-				r.Hall.sendFourUpdateRoomForAll(r)
 			}
 		}
 	}

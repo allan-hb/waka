@@ -562,6 +562,20 @@ func (r *payForAnotherRoomT) ContinueWith(player *playerT) {
 	}
 }
 
+func (r *payForAnotherRoomT) PostRoomMessage(player *playerT, content string) {
+	if r.Players[player.Player] == nil {
+		return
+	}
+
+	for _, target := range r.Players {
+		if target.Player == player.Player {
+			continue
+		}
+
+		r.Hall.sendNiuniuRoomMessage(target.Player, player.Player, content)
+	}
+}
+
 // ---------------------------------------------------------------------------------------------------------------------
 
 func (r *payForAnotherRoomT) loopStart() bool {

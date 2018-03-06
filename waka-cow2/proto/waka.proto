@@ -664,4 +664,20 @@ message NiuniuGetWarHistoryResponse {
 // @post
 message NiuniuShareContinue {}
 
+// @comments 发送房间内消息
+// @post
+message NiuniuPostRoomMessage {
+    // 内容
+    string content = 1;
+}
+
+// @comments 房间内消息
+// @receive
+message NiuniuRoomMessage {
+    // 内容
+    string content = 1;
+    // 发送者
+    int32 sender = 2;
+}
+
 // --------------------------------------↑牛牛↑-----------------------------------------

@@ -23,6 +23,7 @@ type cowRoomT interface {
 	Grab(player *playerT, grab bool)
 	SpecifyRate(player *playerT, rate int32)
 	ContinueWith(player *playerT)
+	PostRoomMessage(player *playerT, content string)
 
 	CreateDiamonds() int32
 	EnterDiamonds() int32

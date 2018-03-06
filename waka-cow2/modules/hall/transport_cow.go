@@ -32,6 +32,8 @@ func (my *actorT) playerTransportedCow(player *playerT, ev *supervisor_message.P
 		my.NiuniuSpecifyRate(player, evd)
 	case *cow_proto.NiuniuContinueWith:
 		my.NiuniuContinueWith(player, evd)
+	case *cow_proto.NiuniuPostRoomMessage:
+		my.NiuniuPostRoomMessage(player, evd)
 	default:
 		return false
 	}
@@ -312,4 +314,25 @@ func (my *actorT) NiuniuContinueWith(player *playerT, ev *cow_proto.NiuniuContin
 	}
 
 	room.ContinueWith(player)
+}
+
+func (my *actorT) NiuniuPostRoomMessage(player *playerT, ev *cow_proto.NiuniuPostRoomMessage) {
+	if player.InsideCow == 0 {
+		log.WithFields(logrus.Fields{
+			"player": player.Player,
+		}).Warnln("post message but not in room")
+		return
+	}
+
+	room, being := my.cowRooms[player.InsideCow]
+	if !being {
+		log.WithFields(logrus.Fields{
+			"player":  player.Player,
+			"room_id": player.InsideCow,
+		}).Warnln("continue but room not found")
+		player.InsideCow = 0
+		return
+	}
+
+	room.PostRoomMessage(player, ev.Content)
 }

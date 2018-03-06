@@ -140,6 +140,13 @@ func (my *actorT) sendNiuniuRequireCommitConfirm(player database.Player) {
 	my.send(player, &cow_proto.NiuniuRequireCommitConfirm{})
 }
 
+func (my *actorT) sendNiuniuRoomMessage(player database.Player, sender database.Player, content string) {
+	my.send(player, &cow_proto.NiuniuRoomMessage{
+		Sender:  int32(sender),
+		Content: content,
+	})
+}
+
 // ----------------------------------------------------
 
 func (my *actorT) sendNiuniuUpdateRoomForAll(room cowRoomT) {

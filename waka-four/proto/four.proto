@@ -734,3 +734,11 @@ message FourPullWarHistoryListResponse {
 // @comments 分享结束
 // @post
 message FourShareContinue {}
+
+// @comments 切换到后台
+// @post
+message FourSwitchToBackground {}
+
+// @comments 切换到前台
+// @post
+message FourSwitchToForeground {}

@@ -369,14 +369,13 @@ var (
 // 获取指定数量的5 张牌
 func Acquire5(group int) [][]string {
 	pool := make([]string, len(kPokers))
+	copy(pool, kPokers)
 
 	devLock.Lock()
-	perm := dev.Perm(len(kPokers))
+	dev.Shuffle(len(pool), func(i, j int) {
+		pool[i], pool[j] = pool[j], pool[i]
+	})
 	devLock.Unlock()
-
-	for i, v := range perm {
-		pool[v] = kPokers[i]
-	}
 
 	if group*5 > len(pool) {
 		panic("acquire too more poker numbers")

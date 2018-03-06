@@ -30,6 +30,10 @@ func (my *actorT) playerTransportedFour(player *playerT, ev *supervisor_message.
 		my.FourSendMessage(player, evd)
 	case *four_proto.FourContinueWith:
 		my.FourContinueWith(player, evd)
+	case *four_proto.FourSwitchToBackground:
+		my.FourSwitchToBackground(player, evd)
+	case *four_proto.FourSwitchToForeground:
+		my.FourSwitchToForeground(player, evd)
 	default:
 		return false
 	}
@@ -295,4 +299,70 @@ func (my *actorT) FourContinueWith(player *playerT, ev *four_proto.FourContinueW
 	}
 
 	room.ContinueWith(player)
+}
+
+func (my *actorT) FourSwitchToBackground(player *playerT, ev *four_proto.FourSwitchToBackground) {
+	log.WithFields(logrus.Fields{
+		"player": player.Player,
+	}).Debugln("player to background")
+
+	playerData, being := my.players[player.Player]
+	if !being {
+		log.WithFields(logrus.Fields{
+			"player": player.Player,
+		}).Warnln("player to background but player not found")
+		return
+	}
+
+	playerData.BackgroundRemote = playerData.Remote
+	playerData.Remote = ""
+
+	if playerData.InsideFour != 0 {
+		room, being := my.fourRooms[playerData.InsideFour]
+		if being {
+			room.Left(playerData)
+		} else {
+			playerData.InsideFour = 0
+		}
+	}
+
+	players := my.players.SelectOnline()
+	playerNumber := int32(len(players))
+	for _, player := range players {
+		my.sendPlayerNumber(player.Player, playerNumber)
+	}
+}
+
+func (my *actorT) FourSwitchToForeground(player *playerT, ev *four_proto.FourSwitchToForeground) {
+	playerData, being := my.players[player.Player]
+	if !being {
+		log.WithFields(logrus.Fields{
+			"player": player.Player,
+		}).Warnln("player to foreground but player not found")
+		return
+	}
+
+	playerData.Remote = playerData.BackgroundRemote
+	playerData.BackgroundRemote = ""
+
+	players := my.players.SelectOnline()
+	playerNumber := int32(len(players))
+	my.sendHallEntered(player.Player)
+	my.sendWelcome(player.Player)
+	for _, player := range players {
+		my.sendPlayerNumber(player.Player, playerNumber)
+	}
+
+	if playerData.InsideFour != 0 {
+		room, being := my.fourRooms[playerData.InsideFour]
+		if being {
+			my.sendRecover(player.Player, true, "four")
+			room.Recover(playerData)
+		} else {
+			playerData.InsideFour = 0
+			my.sendRecover(player.Player, false, "")
+		}
+	} else {
+		my.sendRecover(player.Player, false, "")
+	}
 }

@@ -2,6 +2,30 @@ syntax = "proto3";
 
 package four_proto;
 
+// @comments 推送信息
+// @receive
+message Welcome {
+    // 客服信息
+    message Customer {
+        string name = 1;
+        string wechat = 2;
+    }
+    // 客服信息
+    repeated Customer customers = 1;
+    // 附加配置
+    // ios         ios 审核中 [true, false]
+    map<string, string> exts = 2;
+    // 公告
+    // gapp         健康游戏公告
+    // four_roll    四张滚动公告
+    map<string, string> notices = 3;
+    // 链接
+    // recharge             充值链接
+    // android_download     Android 下载地址
+    // ios_download         iOS 下载地址
+    map<string, string> urls = 4;
+}
+
 // @comments 微信登录请求
 // @post
 message WechatLogin {
@@ -142,29 +166,6 @@ message PullPlayerSecretResponse {
 message HallEntered {
     // 玩家信息
     PlayerSecret player = 1;
-}
-
-// @comments 推送信息
-// @receive
-message FourWelcome {
-    // 客服信息
-    message Customer {
-        string name = 1;
-        string wechat = 2;
-    }
-    // 客服信息
-    repeated Customer customers = 1;
-    // 附加配置
-    // ios         ios 审核中 [true, false]
-    map<string, string> exts = 2;
-    // 公告
-    // gapp         健康游戏公告
-    // four_roll    四张滚动公告
-    map<string, string> notices = 3;
-    // 链接
-    // recharge 充值链接
-    // login    分销链接
-    map<string, string> urls = 4;
 }
 
 // @comments 在线人数
@@ -425,6 +426,8 @@ message FourRoom2 {
         bool ready = 2;
         // 离线
         bool lost = 3;
+        // 位置
+        int32 pos = 4;
     }
 
     // 房间 ID

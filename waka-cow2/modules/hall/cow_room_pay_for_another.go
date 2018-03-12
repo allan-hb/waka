@@ -897,7 +897,7 @@ func (r *payForAnotherRoomT) loopCommitConfirmContinue() bool {
 		if !player.Round.ContinueWithCommitted {
 			finally = false
 			if !player.Round.Sent {
-				r.Hall.sendNiuniuRequireCommitConfirm(player.Player)
+				r.Hall.sendNiuniuRequireCommitConfirm(player.Player, player.Round.Pokers)
 				player.Round.Sent = true
 			}
 		}

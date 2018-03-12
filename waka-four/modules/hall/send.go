@@ -42,15 +42,6 @@ func (my *actorT) sendHallEntered(player database.Player) {
 	})
 }
 
-func (my *actorT) sendWelcome(player database.Player) {
-	my.send(player, &four_proto.FourWelcome{
-		Customers: database.GetCustomerServices(),
-		Exts:      database.GetExts(),
-		Notices:   database.GetNotices(),
-		Urls:      database.GetUrls(),
-	})
-}
-
 func (my *actorT) sendPlayerNumber(player database.Player, number int32) {
 	my.send(player, &four_proto.PlayerNumber{
 		Number: number + conf.Option.Hall.MinPlayerNumber,

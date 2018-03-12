@@ -148,11 +148,11 @@ func Acquire4(group int) [][]string {
 		panic("acquire too more mahjong numbers")
 	}
 
-	var result [][]string
-	for i := 0; i < group; i++ {
-		copied := append([]string{}, pool[:4]...)
-		result = append(result, copied)
-		pool = pool[4:]
+	var result = make([][]string, group)
+	for i := 0; i < 4; i++ {
+		for k := 0; k < group; k++ {
+			result[k] = append(result[k], pool[i*group+k])
+		}
 	}
 	return result
 }

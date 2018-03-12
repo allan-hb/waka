@@ -348,7 +348,6 @@ func (my *actorT) FourSwitchToForeground(player *playerT, ev *four_proto.FourSwi
 	players := my.players.SelectOnline()
 	playerNumber := int32(len(players))
 	my.sendHallEntered(player.Player)
-	my.sendWelcome(player.Player)
 	for _, player := range players {
 		my.sendPlayerNumber(player.Player, playerNumber)
 	}

@@ -11,10 +11,16 @@ type Configuration struct {
 	// 主键
 	Id int32 `gorm:"index;primary_key;AUTO_INCREMENT"`
 	// 类型
+	// customer_service 客服
+	//   val1 客服名称
+	//   val2 客服微信
 	// ext 附加配置
 	//   val1 类型
-	//        ios           ios 审核
+	//      ios iOS 审核中
+	//      ver 版本号
 	//   val2 公告内容
+	//      ios true / false
+	//      ver 版本号 [ 0.2.0 ]
 	// notice 公告
 	//   val1 类型
 	//        gapp          健康游戏公告
@@ -22,11 +28,11 @@ type Configuration struct {
 	//   val2 公告内容
 	// url 链接
 	//   val1 类型
-	//        recharge      充值链接
-	//   val2 链接内容
-	// customer_service 客服
-	//   val1 客服名称
-	//   val2 客服微信
+	//        recharge              充值链接
+	//        android_download      充值链接
+	//        ios_download          充值链接
+	//   val2 链接
+
 	Type string
 	// 值
 	Value1 string `gorm:"column:val1;type:text"`
@@ -39,17 +45,17 @@ type Configuration struct {
 
 var (
 	lock             sync.RWMutex
-	customerServices []*four_proto.FourWelcome_Customer
-	exts             map[string]string
+	customerServices []*four_proto.Welcome_Customer
+	ext              map[string]string
 	notices          map[string]string
 	urls             map[string]string
 )
 
 // 获取附加配置
-func GetExts() map[string]string {
+func GetExt() map[string]string {
 	lock.RLock()
 	defer lock.RUnlock()
-	return exts
+	return ext
 }
 
 // 获取公告
@@ -67,7 +73,7 @@ func GetUrls() map[string]string {
 }
 
 // 获取客服信息
-func GetCustomerServices() []*four_proto.FourWelcome_Customer {
+func GetCustomerServices() []*four_proto.Welcome_Customer {
 	lock.RLock()
 	defer lock.RUnlock()
 	return customerServices
@@ -75,32 +81,32 @@ func GetCustomerServices() []*four_proto.FourWelcome_Customer {
 
 // 刷新配置
 func RefreshConfiguration() error {
-	v1, err := getExt()
+	v1, err := getCustomerServices()
 	if err != nil {
 		return err
 	}
 
-	v2, err := getNotices()
+	v2, err := getExt()
 	if err != nil {
 		return err
 	}
 
-	v3, err := getUrls()
+	v3, err := getNotices()
 	if err != nil {
 		return err
 	}
 
-	v4, err := getCustomerServices()
+	v4, err := getUrls()
 	if err != nil {
 		return err
 	}
 
 	lock.Lock()
 
-	exts = v1
-	notices = v2
-	urls = v3
-	customerServices = v4
+	customerServices = v1
+	ext = v2
+	notices = v3
+	urls = v4
 
 	lock.Unlock()
 
@@ -119,14 +125,14 @@ func getUrls() (map[string]string, error) {
 	return getMap("url")
 }
 
-func getCustomerServices() ([]*four_proto.FourWelcome_Customer, error) {
+func getCustomerServices() ([]*four_proto.Welcome_Customer, error) {
 	var vals []*Configuration
 	if err := mysql.Where("type = ?", "customer_service").Find(&vals).Error; err != nil {
 		return nil, err
 	}
-	var result []*four_proto.FourWelcome_Customer
+	var result []*four_proto.Welcome_Customer
 	for _, val := range vals {
-		result = append(result, &four_proto.FourWelcome_Customer{
+		result = append(result, &four_proto.Welcome_Customer{
 			Name:   val.Value1,
 			Wechat: val.Value2,
 		})

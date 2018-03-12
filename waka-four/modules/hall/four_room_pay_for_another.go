@@ -74,6 +74,7 @@ func (player *fourPayForAnotherRoomPlayerT) FourRoom2Player() *four_proto.FourRo
 		PlayerId: int32(player.Player),
 		Ready:    player.Ready,
 		Lost:     lost,
+		Pos:      player.Pos,
 	}
 }
 

@@ -33,33 +33,6 @@ func (player Player) PlayerData() *PlayerData {
 	return playerData
 }
 
-func (player Player) SupervisorData() *SupervisorData {
-	if player == 0 {
-		return &SupervisorData{
-			Ref:       100000,
-			Player:    100000,
-			BonusRate: 30,
-		}
-	}
-
-	supervisorData, being, err := QuerySupervisorByPlayer(player)
-	if err != nil {
-		return &SupervisorData{
-			Ref:       100000,
-			Player:    100000,
-			BonusRate: 30,
-		}
-	}
-	if !being {
-		return &SupervisorData{
-			Ref:       100000,
-			Player:    100000,
-			BonusRate: 30,
-		}
-	}
-	return supervisorData
-}
-
 // 玩家数据
 type PlayerData struct {
 	// 主键
@@ -79,7 +52,7 @@ type PlayerData struct {
 	Name string
 	// 身份证
 	Idcard string
-	// 代理 ID
+	// 上级代理
 	Supervisor Player
 
 	// 钱

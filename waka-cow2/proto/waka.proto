@@ -576,7 +576,10 @@ message NiuniuSpecifyRate {
 
 // @comments 要求确认提交
 // @receive
-message NiuniuRequireCommitConfirm {}
+message NiuniuRequireCommitConfirm {
+    // 手牌
+    repeated string pokers = 1;
+}
 
 // @comments 小局结束
 // @receive

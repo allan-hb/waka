@@ -22,3 +22,5 @@ Release
 /waka-four/proto/four.pb.meta.go
 /waka/proto/waka.pb.go
 /waka/proto/waka.pb.meta.go
+/waka-cow/proto/cow.pb.go
+/waka-cow/proto/cow.pb.meta.go

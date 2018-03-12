@@ -1,14 +1,27 @@
 syntax = "proto3";
 
-package waka;
+package cow_proto;
 
-option java_package = "com.liuhan907.waka";
-
-// @comments 启用游客
+// @comments 推送信息
 // @receive
-message EnableVisitor {
-    // 是否启用
-    bool enable = 1;
+message Welcome {
+    // 客服信息
+    message Customer {
+        string name = 1;
+        string wechat = 2;
+    }
+    // 客服信息
+    repeated Customer customers = 1;
+    // 附加配置
+    // ios         ios 审核中 [true, false]
+    map<string, string> exts = 2;
+    // 公告
+    // gapp         健康游戏公告
+    // cow_roll     牛牛滚动公告
+    map<string, string> notices = 3;
+    // 链接
+    // recharge             充值链接
+    map<string, string> urls = 4;
 }
 
 // @comments 微信登录请求
@@ -61,15 +74,15 @@ message SetPlayerExtRequest {
 // @comments 设置玩家附加信息结果
 message SetPlayerExtResponse {}
 
-// @comments 设置玩家代理请求
-// @rpc response=SetPlayerAgentResponse
-message SetPlayerAgentRequest {
-    // 代理的玩家 ID
+// @comments 设置上级
+// @rpc response=SetSupervisorResponse
+message SetSupervisorRequest {
+    // 上级玩家 ID
     int32 player_id = 1;
 }
 
-// @comments 设置玩家代理结果
-message SetPlayerAgentResponse {}
+// @comments 设置上级结果
+message SetSupervisorResponse {}
 
 // --------------------------------------↑个人消息↑-----------------------------------------
 
@@ -82,6 +95,7 @@ message Player {
     string nickname = 2;
     // 头像
     string head = 3;
+
     // 金币
     int32 money = 4;
     // VIP
@@ -118,8 +132,8 @@ message PlayerSecret {
     // VIP
     int64 vip = 9;
 
-    // 代理的玩家 ID
-    int32 agent_id = 10;
+    // 上级代理
+    int32 supervisor = 10;
 
     // 注册时间
     string created_at = 11;
@@ -135,29 +149,6 @@ message HallEntered {
     PlayerSecret player = 1;
 }
 
-// @comments 推送信息
-// @receive
-message Welcome {
-    // 客服信息
-    message Customer {
-        string name = 1;
-        string wechat = 2;
-    }
-
-    // 客服信息
-    repeated Customer customers = 1;
-    // 滚动公告
-    string notice = 2;
-    // 公告
-    string notice_big = 3;
-    // 支付链接
-    string pay_url = 4;
-    // 后台注册链接
-    string register_url = 5;
-    // 后台登录链接
-    string login_url = 6;
-}
-
 // @comments 在线人数
 // @receive
 message PlayerNumber {
@@ -171,9 +162,10 @@ message Recover {
     // 是否需要恢复
     bool is = 1;
     // 游戏名称
-    // cow2 牛牛
-    // red 红包
-    // lever28 二八杠
+    // cow          牛牛
+    // red          红包
+    // lever28      二八杠
+    // gomoku       五子棋
     string name = 2;
 }
 

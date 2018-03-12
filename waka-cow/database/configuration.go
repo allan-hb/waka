@@ -3,7 +3,7 @@ package database
 import (
 	"sync"
 
-	waka "github.com/liuhan907/waka/waka-cow/proto"
+	"github.com/liuhan907/waka/waka-cow/proto"
 )
 
 // 系统配置
@@ -11,20 +11,9 @@ type Configuration struct {
 	// 主键
 	Ref int32 `gorm:"index;primary_key;AUTO_INCREMENT"`
 	// 类型
-	// notice 公告
-	//   val1 公告内容
-	// ios 是否 IOS 审核
-	//   val1 true/false
-	// pay_url 支付链接
-	//   val1 链接
-	// register_url 注册链接
-	//   val1 链接
-	// login_url 登录链接
-	//   val1 链接
 	// customer_service 客服
-	//   val1 客服名称
-	//   val2 客服微信
-	//   val3 备注
+	//   val1 姓名
+	//   val2 微信
 	Type string
 	// 值
 	Value1 string `gorm:"column:val1;type:text"`
@@ -43,7 +32,7 @@ var (
 	payURL           string
 	registerURL      string
 	loginURL         string
-	customerServices []*waka.Welcome_Customer
+	customerServices []*cow_proto.Welcome_Customer
 )
 
 // 获取滚动公告
@@ -89,7 +78,7 @@ func GetLoginURL() string {
 }
 
 // 获取客服信息
-func GetCustomerServices() []*waka.Welcome_Customer {
+func GetCustomerServices() []*cow_proto.Welcome_Customer {
 	lock.RLock()
 	defer lock.RUnlock()
 	return customerServices
@@ -199,14 +188,14 @@ func getLoginURL() (string, error) {
 	return val.Value1, nil
 }
 
-func getCustomerServices() ([]*waka.Welcome_Customer, error) {
+func getCustomerServices() ([]*cow_proto.Welcome_Customer, error) {
 	var vals []*Configuration
 	if err := mysql.Where("type = ?", "customer_service").Find(&vals).Error; err != nil {
 		return nil, err
 	}
-	var result []*waka.Welcome_Customer
+	var result []*cow_proto.Welcome_Customer
 	for _, val := range vals {
-		result = append(result, &waka.Welcome_Customer{
+		result = append(result, &cow_proto.Welcome_Customer{
 			Name:   val.Value1,
 			Wechat: val.Value2,
 		})

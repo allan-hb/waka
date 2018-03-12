@@ -136,8 +136,8 @@ func (my *actorT) sendNiuniuRoundFinally(player database.Player, room cowRoomT) 
 	my.send(player, room.NiuniuRoundFinally())
 }
 
-func (my *actorT) sendNiuniuRequireCommitConfirm(player database.Player) {
-	my.send(player, &cow_proto.NiuniuRequireCommitConfirm{})
+func (my *actorT) sendNiuniuRequireCommitConfirm(player database.Player, pokers []string) {
+	my.send(player, &cow_proto.NiuniuRequireCommitConfirm{pokers})
 }
 
 func (my *actorT) sendNiuniuRoomMessage(player database.Player, sender database.Player, content string) {

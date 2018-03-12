@@ -2,10 +2,9 @@
 
 set ProjectPath=%GOPATH%\src\github.com\liuhan907\waka
 set SDKPath=%ProjectPath%\sdk\WakaSDK
-set ProtoName=waka
-set ProtoNameBk=backend
+set ProtoName=cow
 
-protoc %ProtoName%.proto %ProtoNameBk%.proto --go_out=plugins=grpc:. -I .;%GOPATH%\src\github.com\golang\protobuf\ptypes\
+protoc %ProtoName%.proto --go_out=.
 protoc %ProtoName%.proto --msg_out=%ProtoName%.pb.meta.go:.
 
 protoc.exe %ProtoName%.proto --csharp_out .

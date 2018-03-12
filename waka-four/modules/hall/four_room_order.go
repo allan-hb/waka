@@ -78,6 +78,7 @@ func (player *fourOrderRoomPlayerT) FourRoom2Player() *four_proto.FourRoom2_Play
 		PlayerId: int32(player.Player),
 		Ready:    player.Ready,
 		Lost:     lost,
+		Pos:      player.Pos,
 	}
 }
 
@@ -468,6 +469,8 @@ func (r *fourOrderRoomT) LeaveRoom(player *playerT) {
 					r.Hall.players[player.Player].InsideFour = 0
 					r.Hall.sendFourLeftRoomByDismiss(player.Player)
 				}
+			} else {
+				r.Hall.sendFourUpdateRoomForAll(r)
 			}
 		}
 	}

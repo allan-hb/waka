@@ -20,11 +20,11 @@ type Configuration struct {
 	//      ver 版本号
 	//   val2 公告内容
 	//      ios true / false
-	//      ver 版本号 [ 0.2.0 ]
+	//      ver 版本号 [ 0.0.0 ]
 	// notice 公告
 	//   val1 类型
 	//        gapp          健康游戏公告
-	//        four_roll     四张滚动公告
+	//        roll          滚动公告
 	//   val2 公告内容
 	// url 链接
 	//   val1 类型

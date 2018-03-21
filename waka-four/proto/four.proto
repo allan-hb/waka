@@ -17,7 +17,7 @@ message Welcome {
     map<string, string> exts = 2;
     // 公告
     // gapp         健康游戏公告
-    // four_roll    四张滚动公告
+    // roll         滚动公告
     map<string, string> notices = 3;
     // 链接
     // recharge             充值链接
@@ -324,6 +324,8 @@ message FourCancelBanFriendRequest {
 
 // @comments 解除屏蔽好友结果
 message FourCancelBanFriendResponse {}
+
+// ----------------------------------------------------------------
 
 // @comments 房间配置
 message FourRoomOption {

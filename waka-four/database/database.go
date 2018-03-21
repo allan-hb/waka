@@ -49,17 +49,13 @@ func init() {
 		if err := mysql.Exec("alter table players AUTO_INCREMENT = 100000;").Error; err != nil {
 			log.Panic(err)
 		}
-		if err := mysql.Create(&PlayerData{
-			Nickname:  "__system",
-			CreatedAt: time.Now(),
-		}).Error; err != nil {
-			log.Panic(err)
-		}
 	}
 	if conf.Option.Install.Update {
 		if err := mysql.AutoMigrate(tables...).Error; err != nil {
 			log.Panic(err)
 		}
+	}
+	if conf.Option.Install.Reset || conf.Option.Install.Update {
 		systemPlayerCount := 0
 		if err := mysql.Model(new(PlayerData)).Where("id = ?", 100000).Count(&systemPlayerCount).Error; err != nil {
 			log.Panic(err)

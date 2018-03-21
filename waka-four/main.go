@@ -41,6 +41,57 @@ func init() {
 }
 
 func main() {
+	//{
+	//	players := []four.Player{
+	//		{
+	//			Player: 100001,
+	//			Weight: 1,
+	//		},
+	//		{
+	//			Player: 100002,
+	//			Weight: 1,
+	//		},
+	//		{
+	//			Player: 100003,
+	//			Weight: 1,
+	//		},
+	//		{
+	//			Player: 100004,
+	//			Weight: 1,
+	//		},
+	//		{
+	//			Player: 100005,
+	//			Weight: 1,
+	//		},
+	//		{
+	//			Player: 100006,
+	//			Weight: 1,
+	//		},
+	//		{
+	//			Player: 100007,
+	//			Weight: 4,
+	//		},
+	//		{
+	//			Player: 100008,
+	//			Weight: 7,
+	//		},
+	//	}
+	//
+	//	first := time.Now()
+	//	futureMap := four.DistributeRing(players, 24)
+	//	last := time.Now()
+	//	for _, player := range players {
+	//		fmt.Print(player.Player, ":")
+	//		for _, future := range futureMap {
+	//			fmt.Print(future[player.Player], " ")
+	//		}
+	//		fmt.Println()
+	//	}
+	//	fmt.Println(last.Sub(first))
+	//
+	//	return
+	//}
+
 	startGateway()
 	wait()
 }
@@ -93,15 +144,10 @@ func wait() {
 			name := "kill.sh"
 			script := fmt.Sprintf("kill %v", pid)
 
-			if err := ioutil.WriteFile(name, []byte(script), 0777); err != nil {
+			if err := ioutil.WriteFile(name, []byte(script), os.ModePerm); err != nil {
 				log.WithFields(logrus.Fields{
 					"err": err,
 				}).Errorln("write kill script failed")
-			}
-			if err := os.Chmod(name, 777); err != nil {
-				log.WithFields(logrus.Fields{
-					"err": err,
-				}).Errorln("chmod kill script failed")
 			}
 
 			defer os.Remove(name)

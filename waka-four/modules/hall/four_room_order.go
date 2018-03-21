@@ -128,7 +128,6 @@ type fourOrderRoomT struct {
 	CutPos       int32
 
 	Distribution []map[database.Player][]string
-	King         []database.Player
 
 	LoopSwap func() bool
 	StepSwap string
@@ -388,10 +387,6 @@ func (r *fourOrderRoomT) CreateRoom(hall *actorT, id int32, option *four_proto.F
 		Pos:    pos,
 	}
 
-	if creator.PlayerData().VictoryRate > 0 {
-		r.King = append(r.King, creator)
-	}
-
 	if creator.PlayerData().Diamonds < r.CreateDiamonds() {
 		r.Hall.sendFourCreateRoomFailed(creator, 1)
 		return nil
@@ -442,10 +437,6 @@ func (r *fourOrderRoomT) JoinRoom(player *playerT) {
 		Room:   r,
 		Player: player.Player,
 		Pos:    pos,
-	}
-
-	if player.Player.PlayerData().VictoryRate > 0 {
-		r.King = append(r.King, player.Player)
 	}
 
 	player.InsideFour = r.GetId()
@@ -677,37 +668,23 @@ func (r *fourOrderRoomT) loopStart() bool {
 
 	r.loop = r.loopDeal
 
-	var king database.Player
-	for _, k := range r.King {
-		if _, being := r.Players[k]; being {
-			king = k
-			break
+	var players []four.Player
+	linq.From(r.Players).SelectT(func(x linq.KeyValue) four.Player {
+		player := x.Key.(database.Player)
+		return four.Player{
+			Player: player,
+			Weight: player.PlayerData().VictoryWeight,
 		}
-	}
-	if king != 0 {
-		var players []database.Player
-		linq.From(r.Players).SelectT(func(x linq.KeyValue) database.Player {
-			return x.Key.(database.Player)
-		}).ToSlice(&players)
-		r.Distribution = four.Distributing(king, players, r.Option.GetRounds(), king.PlayerData().VictoryRate)
-	}
+	}).ToSlice(&players)
+	r.Distribution = four.Distributing(players, r.Option.GetRounds())
 
 	return true
 }
 
 func (r *fourOrderRoomT) loopDeal() bool {
-	if r.Distribution == nil {
-		pokers := four.Acquire4(len(r.Players))
-		i := 0
-		for _, player := range r.Players {
-			player.Round.Pokers = append(player.Round.Pokers, pokers[i]...)
-			i++
-		}
-	} else {
-		roundMahjong := r.Distribution[r.RoundNumber-1]
-		for _, player := range r.Players {
-			player.Round.Pokers = roundMahjong[player.Player]
-		}
+	roundMahjong := r.Distribution[r.RoundNumber-1]
+	for _, player := range r.Players {
+		player.Round.Pokers = roundMahjong[player.Player]
 	}
 
 	r.loop = r.loopCommitPokers

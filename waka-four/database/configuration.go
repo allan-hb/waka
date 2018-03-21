@@ -29,8 +29,8 @@ type Configuration struct {
 	// url 链接
 	//   val1 类型
 	//        recharge              充值链接
-	//        android_download      充值链接
-	//        ios_download          充值链接
+	//        android_download      Android 下载链接
+	//        ios_download          iOS 下载链接
 	//   val2 链接
 
 	Type string

@@ -66,8 +66,8 @@ type PlayerData struct {
 	// 封禁
 	Ban int32
 
-	// 胜率
-	VictoryRate int32
+	// 权重
+	VictoryWeight int32
 
 	// 创建时间
 	CreatedAt time.Time
@@ -94,14 +94,15 @@ var (
 // 注册玩家
 func RegisterPlayer(unionId, nickname string, head, token string) (*PlayerData, error) {
 	player := &PlayerData{
-		UnionId:   unionId,
-		Token:     token,
-		Nickname:  nickname,
-		Head:      head,
-		Diamonds:  conf.Option.Hall.RegisterDiamonds,
-		Ban:       0,
-		CreatedAt: time.Now(),
-		SharedAt:  time.Date(2018, 1, 1, 0, 0, 0, 0, time.Now().Location()),
+		UnionId:       unionId,
+		Token:         token,
+		Nickname:      nickname,
+		Head:          head,
+		Diamonds:      conf.Option.Hall.RegisterDiamonds,
+		Ban:           0,
+		VictoryWeight: 100,
+		CreatedAt:     time.Now(),
+		SharedAt:      time.Date(2018, 1, 1, 0, 0, 0, 0, time.Now().Location()),
 	}
 	if err := mysql.Create(player).Error; err != nil {
 		return nil, err

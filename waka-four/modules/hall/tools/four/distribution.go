@@ -1,35 +1,23 @@
 package four
 
 import (
+	"math"
 	"math/rand"
 	"sort"
 	"sync"
 	"time"
 
 	"github.com/liuhan907/waka/waka-four/database"
+	"gopkg.in/ahmetb/go-linq.v3"
 )
 
-type mahjongDistributingT struct {
-	Mahjong []string
-	Weight  []int32
-	Score   []int32
-	Pattern []string
+type Player struct {
+	Player database.Player
+	Weight int32
 }
 
-func Distributing(king database.Player, players []database.Player, roundNumber, victoryRate int32) (collections []map[database.Player][]string) {
-	sort.Slice(players, func(i, j int) bool {
-		if players[i] == king {
-			return true
-		}
-
-		if players[j] == king {
-			return false
-		}
-
-		return players[i] < players[j]
-	})
-
-	for _, selected := range buildDistribution(roundNumber, victoryRate) {
+func Distributing(players []Player, roundNumber int32) (collections []map[database.Player][]string) {
+	for _, selected := range distributeFutureRing(players, roundNumber) {
 		var distributions []*mahjongDistributingT
 		for _, mahjong := range Acquire4(len(players)) {
 			b, w, s, p, err := SearchBestPattern(mahjong)
@@ -69,12 +57,8 @@ func Distributing(king database.Player, players []database.Player, roundNumber, 
 		})
 
 		round := make(map[database.Player][]string, len(players))
-		for i, player := range players {
-			round[player] = distributions[i].Mahjong
-		}
-
-		if selected == 1 {
-			round[players[0]], round[players[len(players)-1]] = round[players[len(players)-1]], round[players[0]]
+		for _, player := range players {
+			round[player.Player] = distributions[selected[player.Player]].Mahjong
 		}
 
 		collections = append(collections, round)
@@ -83,37 +67,158 @@ func Distributing(king database.Player, players []database.Player, roundNumber, 
 	return collections
 }
 
+type mahjongDistributingT struct {
+	Mahjong []string
+	Weight  []int32
+	Score   []int32
+	Pattern []string
+}
+
 var (
-	distributingLock sync.Mutex
-	distributingRand = rand.New(rand.NewSource(time.Now().Unix()))
+	getModes func(n int) [][]int32
 )
 
-func buildDistribution(number, rate int32) []int32 {
-	selectedNumber := int32(float64(number*rate)/100 + 0.5)
-	distributingLock.Lock()
-	selectedNumber += int32(distributingRand.Int()%3 - 1)
-	distributingLock.Unlock()
-
-	if selectedNumber < 0 {
-		selectedNumber = 0
+func init() {
+	modes := make(map[int][][]int32, 7)
+	for i := 2; i < 9; i++ {
+		var origin []int32
+		linq.Range(0, i).Select(func(in interface{}) interface{} { return int32(in.(int)) }).ToSlice(&origin)
+		modes[i-2] = permutation(origin)
 	}
-	if selectedNumber > number {
-		selectedNumber = number
+	getModes = func(n int) [][]int32 {
+		return modes[n-2]
+	}
+}
+
+var (
+	dealLock sync.Mutex
+	dealRand = rand.New(rand.NewSource(time.Now().Unix()))
+)
+
+func distributeFutureRing(players []Player, roundNumber int32) (futureMap []map[database.Player]int32) {
+	available := make([][]int32, 0, 8000)
+	modes := getModes(len(players))
+	numberMap := distributeNumberRing(players, roundNumber)
+
+	form := make([][]int32, roundNumber)
+	for i := range form {
+		available = available[:0]
+		for _, mode := range modes {
+			can := true
+			for k, c := range mode {
+				if numberMap[k][c] == 0 {
+					can = false
+					break
+				}
+			}
+			if can {
+				available = append(available, mode)
+			}
+		}
+		if len(available) > 0 {
+			dealLock.Lock()
+			selected := available[dealRand.Int63()%int64(len(available))]
+			dealLock.Unlock()
+			form[i] = selected
+			for k, c := range selected {
+				numberMap[k][c]--
+			}
+		}
 	}
 
-	distributionRaw := make([]int32, number)
-	for i := int32(0); i < selectedNumber; i++ {
-		distributionRaw[i] = 1
+	dealLock.Lock()
+	dealRand.Shuffle(len(form), func(i, j int) {
+		form[i], form[j] = form[j], form[i]
+	})
+	dealLock.Unlock()
+
+	for _, v := range form {
+		m := make(map[database.Player]int32, len(players))
+		for k, c := range v {
+			m[players[k].Player] = c
+		}
+		futureMap = append(futureMap, m)
 	}
 
-	distributingLock.Lock()
-	perm := distributingRand.Perm(len(distributionRaw))
-	distributingLock.Unlock()
+	return futureMap
+}
 
-	distribution := make([]int32, number)
-	for i, k := range perm {
-		distribution[k] = distributionRaw[i]
+func distributeNumberRing(players []Player, roundNumber int32) (numberMap [][]int32) {
+	numberMap = make([][]int32, len(players))
+	for k := range players {
+		numberMap[k] = make([]int32, len(players))
 	}
 
-	return distribution
+	weights := int32(linq.From(players).Select(func(in interface{}) interface{} { return int64(in.(Player).Weight) }).SumInts())
+	for i := int32(len(players) - 1); i > 0; i-- {
+		for k := range players {
+			playerR := float64(players[k].Weight) / float64(weights)
+			remainderR := float64(roundNumber-int32(linq.From(numberMap[k]).SumInts())) / float64(roundNumber)
+			n := int32(playerR*remainderR*float64(roundNumber) + 0.5)
+			numberMap[k][i] = n
+		}
+
+		for {
+			for {
+				number := int32(linq.From(numberMap).Select(func(in interface{}) interface{} { return int64((in.([]int32))[i]) }).SumInts())
+				if number >= roundNumber {
+					break
+				}
+
+				var player int
+				var max int32
+				for k, v := range numberMap {
+					if t := roundNumber - int32(linq.From(v).SumInts()); t > max {
+						player = k
+						max = t
+					}
+				}
+				numberMap[player][i]++
+			}
+
+			for {
+				number := int32(linq.From(numberMap).Select(func(in interface{}) interface{} { return int64((in.([]int32))[i]) }).SumInts())
+				if number <= roundNumber {
+					break
+				}
+
+				var player int
+				var min int32 = math.MaxInt32
+				for k, v := range numberMap {
+					if t := roundNumber - int32(linq.From(v).SumInts()); t < min {
+						player = k
+						min = t
+					}
+				}
+				numberMap[player][i]--
+			}
+
+			number := int32(linq.From(numberMap).Select(func(in interface{}) interface{} { return int64((in.([]int32))[i]) }).SumInts())
+			if number == roundNumber {
+				break
+			}
+		}
+	}
+
+	for _, v := range numberMap {
+		v[0] = roundNumber - int32(linq.From(v).SumInts())
+	}
+
+	return numberMap
+}
+
+func permutation(origin []int32) (permutations [][]int32) {
+	if len(origin) == 1 {
+		return [][]int32{{origin[0]}}
+	}
+
+	for i := range origin {
+		first := origin[i]
+		last := append(append([]int32{}, origin[:i]...), origin[i+1:]...)
+		for _, p := range permutation(last) {
+			permutations = append(permutations, append(append([]int32{}, first), p...))
+		}
+	}
+
+	return permutations
 }

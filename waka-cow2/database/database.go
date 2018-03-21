@@ -52,6 +52,7 @@ func init() {
 		if err := mysql.Create(&PlayerData{
 			Nickname:  "__system",
 			CreatedAt: time.Now(),
+			SharedAt:  time.Date(2018, 1, 1, 0, 0, 0, 0, time.Now().Location()),
 		}).Error; err != nil {
 			log.Panic(err)
 		}

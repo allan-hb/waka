@@ -3,7 +3,6 @@ package hall
 import (
 	"math"
 	"math/rand"
-	"sort"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -553,7 +552,6 @@ func (r *aaRoomT) SpecifyBanker(player *playerT, banker database.Player) {
 	if r.Gaming {
 		if _, being := r.Players[banker]; being {
 			r.Banker = banker
-
 			r.Loop()
 		}
 	}
@@ -642,9 +640,6 @@ func (r *aaRoomT) loopSpecifyBanker() bool {
 	for _, player := range r.Players {
 		player.Round.Sent = false
 	}
-
-	r.Hall.sendNiuniuUpdateRoundForAll(r)
-
 	r.loop = r.loopSpecifyBankerContinue
 	r.tick = buildTickNumber(
 		8,
@@ -671,9 +666,6 @@ func (r *aaRoomT) loopSpecifyBankerContinue() bool {
 
 		return false
 	}
-
-	r.Hall.sendNiuniuUpdateRoundForAll(r)
-
 	r.tick = nil
 	r.loop = func() bool {
 		return r.loopDeal4(r.loopSpecifyRate)
@@ -720,7 +712,7 @@ func (r *aaRoomT) loopGrab() bool {
 
 	r.loop = r.loopGrabContinue
 	r.tick = buildTickNumber(
-		8,
+		13,
 		func(number int32) {
 			r.Hall.sendNiuniuCountdownForAll(r, number)
 		},
@@ -956,16 +948,16 @@ func (r *aaRoomT) loopSettle() bool {
 			players = append(players, player)
 		}
 	}
-
+	playersMes := []*cow_proto.NiuniuRoundPlayerMes{}
 	for _, player := range players {
 		var applyRate int32
 		var applySign int32
 		if banker.Round.BestWeight >= player.Round.BestWeight {
-			applyRate = int32(player.Round.BestRate)
+			applyRate = int32(banker.Round.BestRate)
 			applySign = -1
 			banker.Round.VictoriousNumber++
 		} else {
-			applyRate = int32(banker.Round.BestRate)
+			applyRate = int32(player.Round.BestRate)
 			applySign = 1
 			player.Round.VictoriousNumber++
 		}
@@ -978,10 +970,13 @@ func (r *aaRoomT) loopSettle() bool {
 
 		banker.Round.Points += bs
 		player.Round.Points += ps
+		playersMes = append(playersMes, &cow_proto.NiuniuRoundPlayerMes{
+			Player: int32(player.Player.PlayerData().Id),
+			Point:  ps,
+		})
 	}
-
+	r.Hall.sendNiuniuRoundForAll(r.Banker, r.GetBanker(), playersMes, r)
 	r.loop = r.loopRoundClear
-
 	return true
 }
 
@@ -1044,19 +1039,39 @@ func (r *aaRoomT) loopSelect() bool {
 func (r *aaRoomT) loopTransfer() bool {
 	r.RoundNumber++
 	if r.Option.GetBankerMode() == 1 {
+
 		players := r.Players.ToSlice()
-		sort.Slice(players, func(i, j int) bool {
-			return players[i].Pos < players[j].Pos
-		})
-		for i, player := range players {
-			if player.Player == r.Banker {
-				if i < len(players)-1 {
-					r.Banker = players[i+1].Player
-				} else {
-					r.Banker = players[0].Player
+		index := r.Players[r.GetBanker()].Pos
+	A:
+		for {
+			if index == 1 {
+				index = 5
+			} else {
+				index -= 1
+			}
+
+			for _, player := range players {
+				if player.Pos == index {
+
+					r.Banker = player.Player
+					break A
 				}
 			}
 		}
+		r.Hall.sendNiuniuUpdateRoundForAll(r)
+		/*
+			sort.Slice(players, func(i, j int) bool {
+				return players[i].Pos < players[j].Pos
+			})
+			for i, player := range players {
+				if player.Player == r.Banker {
+					if i < len(players)-1 {
+						r.Banker = players[i+1].Player
+					} else {
+						r.Banker = players[0].Player
+					}
+				}
+			}*/
 	} else if r.Option.GetBankerMode() == 2 {
 		r.Banker = 0
 	}

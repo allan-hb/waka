@@ -678,4 +678,19 @@ message NiuniuRoomMessage {
     int32 sender = 2;
 }
 
+// @comments 小局玩家分值变化
+// @receive
+message NiuniuRound{
+    message playerMes{
+        // 玩家
+        int32 player = 1;
+        // 分数
+        int32 point =2;
+    }
+    // 玩家
+    repeated playerMes data = 1;
+    // 庄主
+    int32 banker = 2;
+}
+
 // --------------------------------------↑牛牛↑-----------------------------------------

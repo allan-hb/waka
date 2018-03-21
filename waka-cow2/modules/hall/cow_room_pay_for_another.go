@@ -3,7 +3,6 @@ package hall
 import (
 	"math"
 	"math/rand"
-	"sort"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -616,8 +615,6 @@ func (r *payForAnotherRoomT) loopSpecifyBanker() bool {
 		player.Round.Sent = false
 	}
 
-	r.Hall.sendNiuniuUpdateRoundForAll(r)
-
 	r.loop = r.loopSpecifyBankerContinue
 	r.tick = buildTickNumber(
 		8,
@@ -629,7 +626,6 @@ func (r *payForAnotherRoomT) loopSpecifyBanker() bool {
 		},
 		r.Loop,
 	)
-
 	return true
 }
 
@@ -641,11 +637,8 @@ func (r *payForAnotherRoomT) loopSpecifyBankerContinue() bool {
 				player.Round.Sent = true
 			}
 		}
-
 		return false
 	}
-
-	r.Hall.sendNiuniuUpdateRoundForAll(r)
 
 	r.tick = nil
 	r.loop = func() bool {
@@ -693,7 +686,7 @@ func (r *payForAnotherRoomT) loopGrab() bool {
 
 	r.loop = r.loopGrabContinue
 	r.tick = buildTickNumber(
-		8,
+		13,
 		func(number int32) {
 			r.Hall.sendNiuniuCountdownForAll(r, number)
 		},
@@ -922,7 +915,7 @@ func (r *payForAnotherRoomT) loopSettle() bool {
 	}
 
 	banker := r.Players[r.Banker]
-
+	playersMes := []*cow_proto.NiuniuRoundPlayerMes{}
 	var players []*payForAnotherPlayerT
 	for _, player := range r.Players {
 		if player.Player != r.Banker {
@@ -934,11 +927,11 @@ func (r *payForAnotherRoomT) loopSettle() bool {
 		var applyRate int32
 		var applySign int32
 		if banker.Round.BestWeight >= player.Round.BestWeight {
-			applyRate = int32(player.Round.BestRate)
+			applyRate = int32(banker.Round.BestRate)
 			applySign = -1
 			banker.Round.VictoriousNumber++
 		} else {
-			applyRate = int32(banker.Round.BestRate)
+			applyRate = int32(player.Round.BestRate)
 			applySign = 1
 			player.Round.VictoriousNumber++
 		}
@@ -951,8 +944,12 @@ func (r *payForAnotherRoomT) loopSettle() bool {
 
 		banker.Round.Points += bs
 		player.Round.Points += ps
+		playersMes = append(playersMes, &cow_proto.NiuniuRoundPlayerMes{
+			Player: int32(player.Player.PlayerData().Id),
+			Point:  ps,
+		})
 	}
-
+	r.Hall.sendNiuniuRoundForAll(r.Banker, r.GetBanker(), playersMes, r)
 	r.loop = r.loopRoundClear
 
 	return true
@@ -1018,18 +1015,36 @@ func (r *payForAnotherRoomT) loopTransfer() bool {
 	r.RoundNumber++
 	if r.Option.GetBankerMode() == 1 {
 		players := r.Players.ToSlice()
-		sort.Slice(players, func(i, j int) bool {
-			return players[i].Pos < players[j].Pos
-		})
-		for i, player := range players {
-			if player.Player == r.Banker {
-				if i < len(players)-1 {
-					r.Banker = players[i+1].Player
-				} else {
-					r.Banker = players[0].Player
+		/*		sort.Slice(players, func(i, j int) bool {
+					return players[i].Pos < players[j].Pos
+				})
+				for i, player := range players {
+					if player.Player == r.Banker {
+						if i < len(players)-1 {
+							r.Banker = players[i+1].Player
+						} else {
+							r.Banker = players[0].Player
+						}
+					}
+				}*/
+		index := r.Players[r.GetBanker()].Pos
+	A:
+		for {
+			if index == 1 {
+				index = 5
+			} else {
+				index -= 1
+			}
+
+			for _, player := range players {
+				if player.Pos == index {
+
+					r.Banker = player.Player
+					break A
 				}
 			}
 		}
+		r.Hall.sendNiuniuUpdateRoundForAll(r)
 	} else if r.Option.GetBankerMode() == 2 {
 		r.Banker = 0
 	}

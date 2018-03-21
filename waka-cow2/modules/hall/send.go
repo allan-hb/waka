@@ -136,7 +136,20 @@ func (my *actorT) sendNiuniuRoomMessage(player database.Player, sender database.
 	})
 }
 
+func (my *actorT) sendNiuniuRound(player database.Player, banker database.Player, players []*cow_proto.NiuniuRoundPlayerMes) {
+	my.send(player, &cow_proto.NiuniuRound{
+		Banker: int32(banker.PlayerData().Id),
+		Data:   players,
+	})
+}
+
 // ----------------------------------------------------
+
+func (my *actorT) sendNiuniuRoundForAll(player database.Player, banker database.Player, players []*cow_proto.NiuniuRoundPlayerMes, room cowRoomT) {
+	for _, player := range room.GetPlayers() {
+		my.sendNiuniuRound(player, banker, players)
+	}
+}
 
 func (my *actorT) sendNiuniuUpdateRoomForAll(room cowRoomT) {
 	for _, player := range room.GetPlayers() {

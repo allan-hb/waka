@@ -34,7 +34,7 @@ func (my *actorT) clock1() {
 
 	fileName := fmt.Sprintf("%s_%s", my.option.Prefix, my.name)
 
-	fd, err := os.OpenFile(fileName, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0)
+	fd, err := os.OpenFile(fileName, os.O_CREATE|os.O_APPEND|os.O_RDWR, os.ModePerm)
 	if err != nil {
 		log.Printf("open log file \"%s\" failed: %v\n", fileName, err)
 		return

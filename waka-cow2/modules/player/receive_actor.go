@@ -2,10 +2,10 @@ package player
 
 import (
 	"github.com/AsynkronIT/protoactor-go/actor"
+	"github.com/liuhan907/waka/waka-cow2/proto"
 	"github.com/sirupsen/logrus"
 
 	"github.com/liuhan907/waka/waka-cow2/database"
-	"github.com/liuhan907/waka/waka-cow2/proto"
 	"github.com/liuhan907/waka/waka/modules/session/session_message"
 )
 
@@ -27,5 +27,10 @@ func (my *actorT) started(context actor.Context) {
 	})
 	my.pid = context.Self()
 
-	my.conn.Tell(&session_message.Send{&cow_proto.EnableVisitor{database.GetIsIOSExamine()}})
+	my.conn.Tell(&session_message.Send{&cow_proto.Welcome{
+		Customers: database.GetCustomerServices(),
+		Exts:      database.GetExt(),
+		Notices:   database.GetNotices(),
+		Urls:      database.GetUrls(),
+	}})
 }

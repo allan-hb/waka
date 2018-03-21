@@ -67,7 +67,6 @@ func (my *actorT) playerEnteredExchanged(player database.Player, remote string) 
 	players := my.players.SelectOnline()
 	playerNumber := int32(len(players))
 	my.sendHallEntered(player)
-	my.sendWelcome(player)
 	for _, player := range players {
 		my.sendPlayerNumber(player.Player, playerNumber)
 	}

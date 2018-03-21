@@ -2,11 +2,29 @@ syntax = "proto3";
 
 package cow_proto;
 
-// @comments 启用游客
+// @comments 推送信息
 // @receive
-message EnableVisitor {
-    // 是否启用
-    bool enable = 1;
+message Welcome {
+    // 客服信息
+    message Customer {
+        string name = 1;
+        string wechat = 2;
+    }
+    // 客服信息
+    repeated Customer customers = 1;
+    // 附加配置
+    // ios         ios 审核中 [true, false]
+    map<string, string> exts = 2;
+    // 公告
+    // gapp         健康游戏公告
+    // roll         滚动公告
+    map<string, string> notices = 3;
+    // 链接
+    // recharge             充值链接
+    // supervisor           后台链接
+    // android_download     Android 下载地址
+    // ios_download         iOS 下载地址
+    map<string, string> urls = 4;
 }
 
 // @comments 微信登录请求
@@ -108,29 +126,6 @@ message PlayerSecret {
 message HallEntered {
     // 玩家信息
     PlayerSecret player = 1;
-}
-
-// @comments 推送信息
-// @receive
-message Welcome {
-    // 客服信息
-    message Customer {
-        string name = 1;
-        string wechat = 2;
-    }
-
-    // 客服信息
-    repeated Customer customers = 1;
-    // 滚动公告
-    string notice = 2;
-    // 公告
-    string notice_big = 3;
-    // 支付链接
-    string pay_url = 4;
-    // 后台注册链接
-    string register_url = 5;
-    // 后台登录链接
-    string login_url = 6;
 }
 
 // @comments 在线人数

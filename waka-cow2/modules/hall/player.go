@@ -57,6 +57,7 @@ func (my *actorT) ToPlayerSecret(player database.Player) (pb *cow_proto.PlayerSe
 
 	pb = &cow_proto.PlayerSecret{
 		Id:        int32(playerData.Id),
+		WechatUid: playerData.UnionId,
 		Nickname:  playerData.Nickname,
 		Head:      playerData.Head,
 		Wechat:    playerData.Wechat,

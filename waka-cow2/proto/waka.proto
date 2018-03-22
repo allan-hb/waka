@@ -100,25 +100,28 @@ message Player {
 message PlayerSecret {
     // 玩家主键
     int32 id = 1;
+    // 微信UID
+    string wechat_uid = 2;
     // 昵称
-    string nickname = 2;
+    string nickname = 3;
     // 头像
-    string head = 3;
-    // 微信号
-    string wechat = 4;
-    // 身份证
-    string idcard = 5;
-    // 姓名
-    string name = 6;
+    string head = 4;
 
-    // 注册时间
-    string created_at = 7;
+    // 微信号
+    string wechat = 5;
+    // 身份证
+    string idcard = 6;
+    // 姓名
+    string name = 7;
 
     // 钻石
     int32 diamonds = 8;
 
+    // 注册时间
+    string created_at = 9;
+
     // 登录IP
-    string ip = 9;
+    string ip = 10;
 }
 
 // @comments 已经进入大厅

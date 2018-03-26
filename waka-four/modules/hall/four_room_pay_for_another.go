@@ -50,9 +50,6 @@ type fourPayForAnotherRoomPlayerRoundT struct {
 	VoteCommitted bool
 	// 投票状态
 	VoteStatus int32
-
-	// 分配的牌
-	PokersPool []map[database.Player][]string
 }
 
 type fourPayForAnotherRoomPlayerT struct {
@@ -128,6 +125,7 @@ type fourPayForAnotherRoomT struct {
 	CutPos       int32
 
 	Distribution []map[database.Player][]string
+	King         []database.Player
 
 	LoopSwap func() bool
 	StepSwap string
@@ -410,6 +408,10 @@ func (r *fourPayForAnotherRoomT) JoinRoom(player *playerT) {
 		Pos:    pos,
 	}
 
+	if player.Player.PlayerData().VictoryRate > 0 {
+		r.King = append(r.King, player.Player)
+	}
+
 	player.InsideFour = r.GetId()
 
 	if r.Owner == 0 {
@@ -633,23 +635,37 @@ func (r *fourPayForAnotherRoomT) loopStart() bool {
 
 	r.loop = r.loopDeal
 
-	var players []four.Player
-	linq.From(r.Players).SelectT(func(x linq.KeyValue) four.Player {
-		player := x.Key.(database.Player)
-		return four.Player{
-			Player: player,
-			Weight: player.PlayerData().VictoryWeight,
+	var king database.Player
+	for _, k := range r.King {
+		if _, being := r.Players[k]; being {
+			king = k
+			break
 		}
-	}).ToSlice(&players)
-	r.Distribution = four.Distributing(players, r.Option.GetRounds())
+	}
+	if king != 0 {
+		var players []database.Player
+		linq.From(r.Players).SelectT(func(x linq.KeyValue) database.Player {
+			return x.Key.(database.Player)
+		}).ToSlice(&players)
+		r.Distribution = four.Distributing(king, players, r.Option.GetRounds(), king.PlayerData().VictoryRate)
+	}
 
 	return true
 }
 
 func (r *fourPayForAnotherRoomT) loopDeal() bool {
-	roundMahjong := r.Distribution[r.RoundNumber-1]
-	for _, player := range r.Players {
-		player.Round.Pokers = roundMahjong[player.Player]
+	if r.Distribution == nil {
+		pokers := four.Acquire4(len(r.Players))
+		i := 0
+		for _, player := range r.Players {
+			player.Round.Pokers = append(player.Round.Pokers, pokers[i]...)
+			i++
+		}
+	} else {
+		roundMahjong := r.Distribution[r.RoundNumber-1]
+		for _, player := range r.Players {
+			player.Round.Pokers = roundMahjong[player.Player]
+		}
 	}
 
 	r.loop = r.loopCommitPokers

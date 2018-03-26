@@ -66,14 +66,17 @@ type PlayerData struct {
 	// 封禁
 	Ban int32
 
-	// 胜率
-	VictoryRate int32
+	// 权重
+	VictoryWeight int32
 
 	// 创建时间
 	CreatedAt time.Time
 
 	// 上次分享时间
 	SharedAt time.Time
+
+	// 上次登录时间
+	LastAt time.Time
 }
 
 func (PlayerData) TableName() string {
@@ -100,8 +103,10 @@ func RegisterPlayer(unionId, nickname string, head, token string) (*PlayerData, 
 		Head:      head,
 		Diamonds:  conf.Option.Hall.RegisterDiamonds,
 		Ban:       0,
+		VictoryWeight: 100,
 		CreatedAt: time.Now(),
 		SharedAt:  time.Date(2018, 1, 1, 0, 0, 0, 0, time.Now().Location()),
+		LastAt:    time.Now(),
 	}
 	if err := mysql.Create(player).Error; err != nil {
 		return nil, err
@@ -124,6 +129,7 @@ func UpdatePlayerLogin(id Player, nickname string, head, token string) error {
 		Nickname: nickname,
 		Head:     head,
 		Token:    token,
+		LastAt:   time.Now(),
 	}).Error; err != nil {
 		return err
 	}
@@ -143,6 +149,16 @@ func UpdatePlayerLogin(id Player, nickname string, head, token string) error {
 
 	playersLock.Unlock()
 
+	return nil
+}
+
+// 更新玩家最后登录时间
+func UpdatePlayerLoginLastAt(id Player) error {
+	if err := mysql.Model(&PlayerData{}).Where("id = ?", id).Update(&PlayerData{
+		LastAt: time.Now(),
+	}).Error; err != nil {
+		return err
+	}
 	return nil
 }
 

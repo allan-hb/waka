@@ -56,6 +56,25 @@ var (
 		"white", "white",
 	}
 
+	PaiGow = []string{
+		"character_6",
+		"dot_2", "dot_2", "dot_4", "dot_4", "dot_6", "dot_6", "dot_7_1", "dot_7_2", "dot_8", "dot_8",
+		"bamboo_3", "bamboo_4", "bamboo_4", "bamboo_5_1", "bamboo_5_2", "bamboo_6", "bamboo_6", "bamboo_7", "bamboo_7", "bamboo_8_1", "bamboo_8_2", "bamboo_9_1", "bamboo_9_2",
+		"red", "red",
+		"green", "green",
+		"east", "east",
+		"white", "white",
+	}
+
+	Poker = []string{
+		"character_6",
+		"dot_2", "dot_2", "dot_4_1", "dot_4_2", "dot_6_1", "dot_6_2", "dot_7_1", "dot_7_2", "dot_8_1", "dot_8_2",
+		"bamboo_3", "bamboo_4_1", "bamboo_4_2", "bamboo_5_1", "bamboo_5_2", "bamboo_6_1", "bamboo_6_2", "bamboo_7_1", "bamboo_7_2", "bamboo_8_1", "bamboo_8_2", "bamboo_9_1", "bamboo_9_2",
+		"red_1", "red_2",
+		"green_1", "green_2",
+		"east_1", "east_2",
+		"white_1", "white_2",
+	}
 	MahjongName = map[string]string{
 		"character_6": "六万",
 		"dot_2":       "二筒",
@@ -79,39 +98,69 @@ var (
 	MahjongWeight = map[string]int32{
 		"character_6": 6,
 		"dot_2":       2,
+		"dot_2_1":     2,
+		"dot_2_2":     2,
 		"dot_4":       4,
+		"dot_4_1":     4,
+		"dot_4_2":     4,
 		"dot_6":       6,
+		"dot_6_1":     6,
+		"dot_6_2":     6,
 		"dot_7":       7,
+		"dot_7_1":     7,
+		"dot_7_2":     7,
 		"dot_8":       8,
+		"dot_8_1":     8,
+		"dot_8_2":     8,
 		"bamboo_3":    3,
 		"bamboo_4":    4,
+		"bamboo_4_1":  4,
+		"bamboo_4_2":  4,
 		"bamboo_5":    5,
+		"bamboo_5_1":  5,
+		"bamboo_5_2":  5,
 		"bamboo_6":    6,
+		"bamboo_6_1":  6,
+		"bamboo_6_2":  6,
 		"bamboo_7":    7,
+		"bamboo_7_1":  7,
+		"bamboo_7_2":  7,
 		"bamboo_8":    8,
+		"bamboo_8_1":  8,
+		"bamboo_8_2":  8,
 		"bamboo_9":    9,
+		"bamboo_9_1":  9,
+		"bamboo_9_2":  9,
 		"red":         10,
+		"red_1":       10,
+		"red_2":       10,
 		"green":       10,
+		"green_1":     10,
+		"green_2":     10,
 		"east":        1,
+		"east_1":      1,
+		"east_2":      1,
 		"white":       2,
+		"white_1":     2,
+		"white_2":     2,
 	}
 )
 
 func GetRank(mahjong string) (int32, string) {
 	switch mahjong {
-	case "white":
+	case "white", "white_1", "white_2":
 		return 9, "天牌"
-	case "dot_2":
+	case "dot_2", "dot_2_1", "dot_2_2":
 		return 8, "地牌"
-	case "dot_8":
+	case "dot_8", "dot_8_1", "dot_8_2":
 		return 7, "银牌"
-	case "bamboo_4":
+	case "bamboo_4", "bamboo_4_1", "bamboo_4_2":
 		return 6, "狐牌"
-	case "bamboo_6", "dot_4", "green":
+	case "bamboo_6", "bamboo_6_1", "bamboo_6_2", "dot_4", "dot_4_1", "dot_4_2", "green", "green_1", "green_2":
 		return 5, "长牌"
-	case "east", "bamboo_7", "red", "dot_6":
+	case "east", "east_1", "east_2", "bamboo_7", "bamboo_7_1", "bamboo_7_2", "red", "red_1", "red_2", "dot_6", "dot_6_1", "dot_6_2":
 		return 4, "短牌"
-	case "bamboo_5", "bamboo_8", "bamboo_9", "dot_7",
+	case "bamboo_5", "bamboo_5_1", "bamboo_5_2", "bamboo_8", "bamboo_8_1", "bamboo_8_2", "bamboo_9", "bamboo_9_1", "bamboo_9_2", "dot_7", "dot_7_1", "dot_7_2",
 		"character_6", "bamboo_3":
 		return 3, "烂牌"
 	default:
@@ -134,10 +183,18 @@ var (
 )
 
 // 获取指定数量的4 张牌
-func Acquire4(group int) [][]string {
-	pool := make([]string, len(Mahjong))
-	copy(pool, Mahjong)
-
+func Acquire4(group int, cardType int32) [][]string {
+	var pool []string
+	if cardType == 1 {
+		pool = make([]string, len(Mahjong))
+		copy(pool, Mahjong)
+	} else if cardType == 2 {
+		pool = make([]string, len(Poker))
+		copy(pool, Mahjong)
+	} else if cardType == 3 {
+		pool = make([]string, len(PaiGow))
+		copy(pool, Mahjong)
+	}
 	devLock.Lock()
 	dev.Shuffle(len(pool), func(i, j int) {
 		pool[i], pool[j] = pool[j], pool[i]

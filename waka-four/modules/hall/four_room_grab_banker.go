@@ -721,7 +721,7 @@ func (r *fourGrabBankerRoomT) loopStart() bool {
 		linq.From(r.Players).SelectT(func(x linq.KeyValue) database.Player {
 			return x.Key.(database.Player)
 		}).ToSlice(&players)
-		r.Distribution = four.Distributing(king, players, r.Option.GetRounds(), king.PlayerData().VictoryRate)
+		r.Distribution = four.Distributing(king, players, r.Option.GetRounds(), king.PlayerData().VictoryRate, r.Option.CardType)
 	}
 
 	return true
@@ -729,7 +729,7 @@ func (r *fourGrabBankerRoomT) loopStart() bool {
 
 func (r *fourGrabBankerRoomT) loopDeal() bool {
 	if r.Distribution == nil {
-		pokers := four.Acquire4(len(r.Players))
+		pokers := four.Acquire4(len(r.Players), r.Option.CardType)
 		i := 0
 		for _, player := range r.Players {
 			player.Round.Pokers = append(player.Round.Pokers, pokers[i]...)

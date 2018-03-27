@@ -5,6 +5,8 @@ import (
 	"sort"
 	"strconv"
 
+	"strings"
+
 	"github.com/liuhan907/waka/waka-four/modules/hall/tools"
 	"gopkg.in/ahmetb/go-linq.v3"
 )
@@ -45,68 +47,80 @@ func GetPattern(mahjongs []string) (weight int32, score int32, pattern string, e
 	rank := int32(0)
 
 	switch {
-	case mahjongs[0] == "bamboo_3" && mahjongs[1] == "character_6":
+	case
+		strings.HasPrefix(mahjongs[0], "bamboo_3") && strings.HasPrefix(mahjongs[1], "character_6"):
 		highest = 1
 		score = 13
 		pattern = "至尊"
 
-	case mahjongs[0] == "white" && mahjongs[1] == "white":
+	case
+		strings.HasPrefix(mahjongs[0], "white") && strings.HasPrefix(mahjongs[1], "white"):
 		double = 9
 		score = 12
 		pattern = "对天"
-	case mahjongs[0] == "dot_2" && mahjongs[1] == "dot_2":
+	case
+		strings.HasPrefix(mahjongs[0], "dot_2") && strings.HasPrefix(mahjongs[1], "dot_2"):
 		double = 8
 		score = 12
 		pattern = "对地"
-	case mahjongs[0] == "dot_8" && mahjongs[1] == "dot_8":
+	case
+		strings.HasPrefix(mahjongs[0], "dot_8") && strings.HasPrefix(mahjongs[1], "dot_8"):
 		double = 7
 		score = 12
 		pattern = "对银"
-	case mahjongs[0] == "bamboo_4" && mahjongs[1] == "bamboo_4":
+	case
+		strings.HasPrefix(mahjongs[0], "bamboo_4") && strings.HasPrefix(mahjongs[1], "bamboo_4"):
 		double = 6
 		score = 12
 		pattern = "对狐"
-	case mahjongs[0] == "bamboo_6" && mahjongs[1] == "bamboo_6",
-		mahjongs[0] == "dot_4" && mahjongs[1] == "dot_4",
-		mahjongs[0] == "green" && mahjongs[1] == "green":
+	case
+		strings.HasPrefix(mahjongs[0], "dot_4") && strings.HasPrefix(mahjongs[1], "dot_4"),
+		strings.HasPrefix(mahjongs[0], "bamboo_6") && strings.HasPrefix(mahjongs[1], "bamboo_6"),
+		strings.HasPrefix(mahjongs[0], "green") && strings.HasPrefix(mahjongs[1], "green"):
 		double = 5
 		score = 12
 		pattern = "长对"
-	case mahjongs[0] == "bamboo_7" && mahjongs[1] == "bamboo_7",
-		mahjongs[0] == "east" && mahjongs[1] == "east",
-		mahjongs[0] == "red" && mahjongs[1] == "red",
-		mahjongs[0] == "dot_6" && mahjongs[1] == "dot_6":
+	case
+		strings.HasPrefix(mahjongs[0], "red") && strings.HasPrefix(mahjongs[1], "red"),
+		strings.HasPrefix(mahjongs[0], "bamboo_7") && strings.HasPrefix(mahjongs[1], "bamboo_7"),
+		strings.HasPrefix(mahjongs[0], "east") && strings.HasPrefix(mahjongs[1], "east"),
+		strings.HasPrefix(mahjongs[0], "dot_6") && strings.HasPrefix(mahjongs[1], "dot_6"):
 		double = 4
 		score = 12
 		pattern = "短对"
-	case mahjongs[0] == "dot_7" && mahjongs[1] == "dot_7",
-		mahjongs[0] == "bamboo_8" && mahjongs[1] == "bamboo_8",
-		mahjongs[0] == "bamboo_5" && mahjongs[1] == "bamboo_5",
-		mahjongs[0] == "bamboo_9" && mahjongs[1] == "bamboo_9":
+	case strings.HasPrefix(mahjongs[0], "dot_7") && strings.HasPrefix(mahjongs[1], "dot_7"),
+		strings.HasPrefix(mahjongs[0], "bamboo_8") && strings.HasPrefix(mahjongs[1], "bamboo_8"),
+		strings.HasPrefix(mahjongs[0], "bamboo_5") && strings.HasPrefix(mahjongs[1], "bamboo_5"),
+		strings.HasPrefix(mahjongs[0], "bamboo_9") && strings.HasPrefix(mahjongs[1], "bamboo_9"):
 		double = 3
 		score = 12
 		pattern = "烂对"
 
-	case mahjongs[0] == "bamboo_9" && mahjongs[1] == "white":
+	case
+		strings.HasPrefix(mahjongs[0], "bamboo_9") && strings.HasPrefix(mahjongs[1], "white"):
 		value = 11
 		score = 11
 		pattern = "天九王"
-	case mahjongs[0] == "dot_8" && mahjongs[1] == "white":
+	case
+		strings.HasPrefix(mahjongs[0], "dot_8") && strings.HasPrefix(mahjongs[1], "white"):
 		value = 10
 		rank = 9
 		score = 10
 		pattern = "天杠"
-	case mahjongs[0] == "bamboo_8" && mahjongs[1] == "white":
+	case
+		strings.HasPrefix(mahjongs[0], "bamboo_8") && strings.HasPrefix(mahjongs[1], "white"):
 		value = 10
 		rank = 8
 		score = 10
 		pattern = "天杠"
-	case mahjongs[0] == "dot_2" && mahjongs[1] == "dot_8":
+	case
+		strings.HasPrefix(mahjongs[0], "dot_8") && strings.HasPrefix(mahjongs[1], "dot_2"):
 		value = 10
 		rank = 7
 		score = 10
 		pattern = "地杠"
-	case mahjongs[0] == "bamboo_8" && mahjongs[1] == "dot_2":
+	case
+		strings.HasPrefix(mahjongs[0], "bamboo_8") && strings.HasPrefix(mahjongs[1], "dot_2"):
 		value = 10
 		rank = 6
 		score = 10

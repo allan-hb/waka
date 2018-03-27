@@ -349,6 +349,9 @@ message FourRoomOption {
     // 私密
     bool scret = 5 ;
     // 牌类
+    // 1 麻将
+    // 2 扑克
+    // 3 牌九
     int32  cardType = 6 ;
     // 人数
     int32 number = 7 ;

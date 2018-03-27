@@ -16,7 +16,7 @@ type mahjongDistributingT struct {
 	Pattern []string
 }
 
-func Distributing(king database.Player, players []database.Player, roundNumber, victoryRate int32) (collections []map[database.Player][]string) {
+func Distributing(king database.Player, players []database.Player, roundNumber, victoryRate int32, cardType int32) (collections []map[database.Player][]string) {
 	sort.Slice(players, func(i, j int) bool {
 		if players[i] == king {
 			return true
@@ -31,7 +31,7 @@ func Distributing(king database.Player, players []database.Player, roundNumber, 
 
 	for _, selected := range buildDistribution(roundNumber, victoryRate) {
 		var distributions []*mahjongDistributingT
-		for _, mahjong := range Acquire4(len(players)) {
+		for _, mahjong := range Acquire4(len(players), cardType) {
 			b, w, s, p, err := SearchBestPattern(mahjong)
 			if err != nil {
 				panic(err)

@@ -48,11 +48,10 @@ func (my *actorT) FourCreateRoom(player *playerT, ev *four_proto.FourCreateRoom)
 		my.sendFourCreateRoomFailed(player.Player, 2)
 		return
 	}
-
 	option := ev.Option
 	if (option.GetRounds() != 8 && option.GetRounds() != 16 && option.GetRounds() != 24) ||
 		(option.GetRate() != 1 && option.GetRate() != 2 && option.GetRate() != 3) ||
-		option.GetRuleMode() != 1 ||
+		(option.GetRuleMode() != 1 && option.GetRuleMode() != 2 && option.GetRuleMode() != 3 && option.GetRuleMode() != 4) ||
 		(option.GetPayMode() != 1 && option.GetPayMode() != 2 && option.GetPayMode() != 3) ||
 		(option.GetNumber() != 2 && option.GetNumber() != 4 && option.GetNumber() != 7 && option.GetNumber() != 8) ||
 		(option.GetCardType() != 1 && option.GetCardType() != 2 && option.GetCardType() != 3) {
@@ -85,7 +84,6 @@ func (my *actorT) FourCreateRoom(player *playerT, ev *four_proto.FourCreateRoom)
 	} else {
 		panic("this code should not be executed")
 	}
-
 	room.CreateRoom(my, id, ev.GetOption(), player.Player)
 }
 

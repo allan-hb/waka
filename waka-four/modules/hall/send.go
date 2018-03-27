@@ -121,6 +121,22 @@ func (my *actorT) sendFourDismissVoteCountdown(player database.Player, number in
 	my.send(player, &four_proto.FourDismissVoteCountdown{number})
 }
 
+func (my *actorT) sendFourGrabBankerCountdown(player database.Player, number int32) {
+	my.send(player, &four_proto.FourGrabBankerCountdown{number})
+}
+
+func (my *actorT) sendFourGrabAnimationCountdown(player database.Player, number int32) {
+	my.send(player, &four_proto.FourGrabAnimationCountdown{number})
+}
+
+func (my *actorT) sendFourRequireGrabBanker(player database.Player) {
+	my.send(player, &four_proto.FourRequireGrabBanker{})
+}
+
+func (my *actorT) sendFourGrabAnimation(player database.Player, room fourRoomT) {
+	my.send(player, room.FourGrabAnimation())
+}
+
 func (my *actorT) sendFourReceivedMessage(player database.Player, sender database.Player, messageType int32, text string) {
 	my.send(player, &four_proto.FourReceivedMessage{int32(sender), &four_proto.FourMessage{messageType, text}})
 }
@@ -163,6 +179,18 @@ func (my *actorT) sendFourStartedForAll(room fourRoomT, number int32) {
 func (my *actorT) sendFourDismissVoteCountdownForAll(room fourRoomT, number int32) {
 	for _, player := range room.GetPlayers() {
 		my.sendFourDismissVoteCountdown(player, number)
+	}
+}
+
+func (my *actorT) sendFourGrabAnimationCountdownForAll(room fourRoomT, number int32) {
+	for _, player := range room.GetPlayers() {
+		my.sendFourGrabAnimationCountdown(player, number)
+	}
+}
+
+func (my *actorT) sendFourGrabBankerCountdownForAll(room fourRoomT, number int32) {
+	for _, player := range room.GetPlayers() {
+		my.sendFourGrabBankerCountdown(player, number)
 	}
 }
 

@@ -67,7 +67,7 @@ type PlayerData struct {
 	Ban int32
 
 	// 权重
-	VictoryWeight int32
+	VictoryRate int32
 
 	// 创建时间
 	CreatedAt time.Time
@@ -103,7 +103,7 @@ func RegisterPlayer(unionId, nickname string, head, token string) (*PlayerData, 
 		Head:      head,
 		Diamonds:  conf.Option.Hall.RegisterDiamonds,
 		Ban:       0,
-		VictoryWeight: 100,
+		VictoryRate: 100,
 		CreatedAt: time.Now(),
 		SharedAt:  time.Date(2018, 1, 1, 0, 0, 0, 0, time.Now().Location()),
 		LastAt:    time.Now(),

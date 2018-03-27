@@ -337,6 +337,9 @@ message FourRoomOption {
     int32 rate = 2;
     // 玩法
     // 1 通比
+    // 2 固定庄家
+    // 3 轮庄
+    // 4 明牌抢庄
     int32 rule_mode = 3;
     // 模式
     // 1 房主支付
@@ -344,7 +347,11 @@ message FourRoomOption {
     // 3 代开
     int32 pay_mode = 4;
     // 私密
-    bool scret = 5;
+    bool scret = 5 ;
+    // 牌类
+    int32  cardType = 6 ;
+    // 人数
+    int32 number = 7 ;
 }
 
 // @comments 房间信息1
@@ -361,6 +368,8 @@ message FourRoom1 {
     int32 player_number = 5;
     // 是否正在游戏
     bool gaming = 6;
+    // 庄主
+    int32 banker = 7;
 }
 
 // @comments 拉取代开房间列表
@@ -411,6 +420,7 @@ message FourJoinRoomFailed {
     // 3 私密房间
     // 4 已在房间中
     // 5 游戏中
+    // 6 房间人数已满
     int32 reason = 1;
 }
 
@@ -444,6 +454,8 @@ message FourRoom2 {
     repeated Player players = 5;
     // 是否正在游戏
     bool gaming = 6;
+    // 庄主
+    int32 banker = 7;
 }
 
 // @comments 更新房间信息
@@ -486,6 +498,39 @@ message FourDismissRequireVote {
 // @comments 投票倒计时
 // @receive
 message FourDismissVoteCountdown {
+    // 倒计时
+    int32 number = 1;
+}
+
+// @comments 要求选择庄家
+// @receive
+message FourRequireGrabBanker{}
+
+
+// @comments 抢庄家倒计时
+// @receiveb
+message FourGrabBankerCountdown {
+    // 倒计时
+    int32 number = 1;
+}
+
+// @comments 抢庄动画
+// @receive
+message FourGrabAnimation {
+    // 玩家
+    message PlayerData {
+        // 玩家 ID
+        int32 player_id = 1;
+        // 是否抢庄
+        bool grab = 2;
+    }
+
+    repeated PlayerData players = 1;
+}
+
+// @comments 抢庄动画倒计时
+// @receiveb
+message FourGrabAnimationCountdown {
     // 倒计时
     int32 number = 1;
 }

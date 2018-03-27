@@ -32,6 +32,7 @@ type fourRoomT interface {
 	FourFinallySettle() *four_proto.FourFinallySettle
 	FourUpdateDismissVoteStatus() (*four_proto.FourUpdateDismissVoteStatus, bool, bool)
 	FourUpdateContinueWithStatus() *four_proto.FourUpdateContinueWithStatus
+	FourGrabAnimation() *four_proto.FourGrabAnimation
 
 	BackendRoom() map[string]interface{}
 

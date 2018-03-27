@@ -53,7 +53,9 @@ func (my *actorT) FourCreateRoom(player *playerT, ev *four_proto.FourCreateRoom)
 	if (option.GetRounds() != 8 && option.GetRounds() != 16 && option.GetRounds() != 24) ||
 		(option.GetRate() != 1 && option.GetRate() != 2 && option.GetRate() != 3) ||
 		option.GetRuleMode() != 1 ||
-		(option.GetPayMode() != 1 && option.GetPayMode() != 2 && option.GetPayMode() != 3) {
+		(option.GetPayMode() != 1 && option.GetPayMode() != 2 && option.GetPayMode() != 3) ||
+		(option.GetNumber() != 2 && option.GetNumber() != 4 && option.GetNumber() != 7 && option.GetNumber() != 8) ||
+		(option.GetCardType() != 1 && option.GetCardType() != 2 && option.GetCardType() != 3) {
 		log.WithFields(logrus.Fields{
 			"player": player.Player,
 		}).Warnln("create four room but option illegal")
@@ -72,10 +74,14 @@ func (my *actorT) FourCreateRoom(player *playerT, ev *four_proto.FourCreateRoom)
 
 	var room fourRoomT
 
-	if option.GetPayMode() == 1 || option.GetPayMode() == 2 {
-		room = new(fourOrderRoomT)
+	if option.GetPayMode() == 1 {
+		room = new(fourNoBankerRoomT)
+	} else if option.GetPayMode() == 2 {
+		room = new(fourFixedBankerRoomT)
 	} else if option.GetPayMode() == 3 {
-		room = new(fourPayForAnotherRoomT)
+		room = new(fourCirculationBankerRoomT)
+	} else if option.GetPayMode() == 4 {
+		room = new(fourGrabBankerRoomT)
 	} else {
 		panic("this code should not be executed")
 	}

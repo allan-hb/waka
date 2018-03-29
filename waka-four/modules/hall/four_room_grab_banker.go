@@ -24,6 +24,18 @@ type fourGrabBankerRoomPlayerRoundT struct {
 	// 本阶段消息是否已发送
 	Sent bool
 
+	// 是否抢庄
+	Grab bool
+	// 抢庄选择倍数
+	GrabTimes int32
+	// 抢庄已提交
+	GrabCommitted bool
+
+	// 下注倍数
+	Multiple int32
+	// 下注倍数已提交
+	MultipleCommitted bool
+
 	// 分配的手牌
 	Pokers []string
 
@@ -47,10 +59,6 @@ type fourGrabBankerRoomPlayerRoundT struct {
 	PokersScoreBehind int32
 	// 本回合得分
 	PokersPoints int32
-	// 是否抢庄
-	Grab bool
-	// 抢庄已提交
-	GrabCommitted bool
 
 	// 投票已提交
 	VoteCommitted bool
@@ -139,6 +147,10 @@ type fourGrabBankerRoomT struct {
 
 	LoopSwap func() bool
 	StepSwap string
+}
+
+func (r *fourGrabBankerRoomT) FourGrabOfFixedBanker(player *playerT, grab bool) {
+	panic("implement me")
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -674,6 +686,28 @@ func (r *fourGrabBankerRoomT) DismissVote(player *playerT, passing bool) {
 	}
 }
 
+func (r *fourGrabBankerRoomT) FourGrabBanker(player *playerT, grab bool, grabTimes int32) {
+	if r.Gaming {
+		r.Players[player.Player].Round.Grab = grab
+		r.Players[player.Player].Round.GrabTimes = grabTimes
+		r.Players[player.Player].Round.GrabCommitted = true
+
+		r.Hall.sendFourUpdateRoundForAll(r)
+
+		r.Loop()
+	}
+}
+
+func (r *fourGrabBankerRoomT) FourSetMultiple(player *playerT, multiple int32) {
+	if r.Gaming {
+		r.Players[player.Player].Round.Multiple = multiple
+		r.Players[player.Player].Round.MultipleCommitted = true
+		r.Hall.sendFourUpdateRoundForAll(r)
+
+		r.Loop()
+	}
+}
+
 func (r *fourGrabBankerRoomT) SendMessage(player *playerT, messageType int32, text string) {
 	for _, target := range r.Players {
 		if target.Player != player.Player {
@@ -846,26 +880,76 @@ func (r *fourGrabBankerRoomT) loopGrabAnimationContinue() bool {
 
 func (r *fourGrabBankerRoomT) loopGrabSelect() bool {
 	var candidates []database.Player
+	var noOneGarb []database.Player
 	for _, player := range r.Players {
 		if player.Round.Grab {
-			candidates = append(candidates, player.Player)
+			max := player.Round.GrabTimes
+			if player.Round.GrabTimes > max {
+				candidates = candidates[0:1]
+				candidates[0] = player.Player
+			} else if player.Round.GrabTimes == max {
+				candidates = append(candidates, player.Player)
+			}
 		}
+		noOneGarb = append(noOneGarb, player.Player)
 	}
 
 	if len(candidates) > 0 {
 		r.Banker = candidates[rand.Int()%len(candidates)]
-		log.WithFields(logrus.Fields{
-			"candidates": candidates,
-			"banker":     r.Banker,
-		}).Debugln("grab")
 	} else {
-		r.Banker = r.Owner
-
-		log.WithFields(logrus.Fields{
-			"banker": r.Banker,
-		}).Debugln("no player grab")
+		r.Banker = noOneGarb[rand.Int()%len(noOneGarb)]
+		r.Players[r.Banker].Round.GrabTimes = 1
 	}
 	r.Hall.sendFourUpdateRoomForAll(r)
+	r.loop = r.loopSetMultiple
+	return true
+}
+
+func (r *fourGrabBankerRoomT) loopSetMultiple() bool {
+	r.Step = "set_multiple"
+	for _, player := range r.Players {
+		player.Round.Sent = false
+		player.Round.ContinueWithCommitted = false
+	}
+	r.Hall.sendFourUpdateRoundForAll(r)
+
+	r.loop = r.loopSetMultipleContinue
+	r.tick = buildTickNumber(
+		5,
+		func(number int32) {
+			r.Hall.sendFourSetMultipleCountdownForAll(r, number)
+		},
+		func() {
+			for _, player := range r.Players {
+				player.Round.Multiple = 1
+				player.Round.MultipleCommitted = true
+			}
+		},
+		r.Loop,
+	)
+	return true
+}
+
+func (r *fourGrabBankerRoomT) loopSetMultipleContinue() bool {
+	finally := true
+	for _, player := range r.Players {
+		updated := player.Round.Sent
+		if !player.Round.MultipleCommitted {
+			finally = false
+			if !player.Round.Sent {
+				r.Hall.sendFourRequireSetMultiple(player.Player)
+				player.Round.Sent = true
+			}
+		}
+		if !updated {
+			r.Hall.sendFourUpdateContinueWithStatus(player.Player, r)
+		}
+	}
+	if !finally {
+		return false
+	}
+
+	r.tick = nil
 	r.loop = r.loopCommitPokers
 	return true
 }
@@ -1019,25 +1103,28 @@ func (r *fourGrabBankerRoomT) loopSettle() bool {
 		case banker.PokersWeightFront == player.PokersWeightFront && banker.PokersWeightBehind < player.PokersWeightBehind,
 			banker.PokersWeightFront < player.PokersWeightFront && banker.PokersWeightBehind == player.PokersWeightBehind,
 			banker.PokersWeightFront < player.PokersWeightFront && banker.PokersWeightBehind < player.PokersWeightBehind:
-			banker.PokersPoints += (player.PokersScoreFront + player.PokersScoreBehind) * (-1)
-			player.PokersPoints += player.PokersScoreFront + player.PokersScoreBehind
+			banker.PokersPoints += (player.PokersScoreFront + player.PokersScoreBehind) * (-1) * player.Multiple * banker.GrabTimes
+			player.PokersPoints += player.PokersScoreFront + player.PokersScoreBehind*player.Multiple*banker.GrabTimes
 
 		case banker.PokersWeightFront == player.PokersWeightFront && banker.PokersWeightBehind > player.PokersWeightBehind,
 			banker.PokersWeightFront > player.PokersWeightFront && banker.PokersWeightBehind == player.PokersWeightBehind,
 			banker.PokersWeightFront > player.PokersWeightFront && banker.PokersWeightBehind > player.PokersWeightBehind:
-			banker.PokersPoints += banker.PokersScoreFront + banker.PokersScoreBehind
-			player.PokersPoints += (banker.PokersScoreFront + banker.PokersScoreBehind) * (-1)
+			banker.PokersPoints += (banker.PokersScoreFront + banker.PokersScoreBehind) * player.Multiple * banker.GrabTimes
+			player.PokersPoints += (banker.PokersScoreFront + banker.PokersScoreBehind) * (-1) * player.Multiple * banker.GrabTimes
 
 		case banker.PokersWeightFront < player.PokersWeightFront && banker.PokersWeightBehind > player.PokersWeightBehind:
-			banker.PokersPoints += player.PokersScoreFront * (-1)
-			player.PokersPoints += player.PokersScoreFront
-			banker.PokersPoints += banker.PokersScoreBehind
-			player.PokersPoints += banker.PokersScoreBehind * (-1)
+			banker.PokersPoints += player.PokersScoreFront * (-1) * player.Multiple * banker.GrabTimes
+			player.PokersPoints += player.PokersScoreFront * player.Multiple * banker.GrabTimes
+			banker.PokersPoints += banker.PokersScoreBehind * player.Multiple * banker.GrabTimes
+			player.PokersPoints += banker.PokersScoreBehind * (-1) * player.Multiple * banker.GrabTimes
 		case banker.PokersWeightFront > player.PokersWeightFront && banker.PokersWeightBehind < player.PokersWeightBehind:
-			banker.PokersPoints += banker.PokersScoreFront
-			player.PokersPoints += banker.PokersScoreFront * (-1)
-			banker.PokersPoints += player.PokersScoreBehind * (-1)
-			player.PokersPoints += player.PokersScoreBehind
+			banker.PokersPoints += banker.PokersScoreFront * player.Multiple * banker.GrabTimes
+			player.PokersPoints += banker.PokersScoreFront * (-1) * player.Multiple * banker.GrabTimes
+			banker.PokersPoints += player.PokersScoreBehind * (-1) * player.Multiple * banker.GrabTimes
+			player.PokersPoints += player.PokersScoreBehind * player.Multiple * banker.GrabTimes
+		case banker.PokersWeightFront == player.PokersWeightFront && banker.PokersWeightBehind == player.PokersWeightBehind:
+			banker.PokersPoints += (banker.PokersScoreFront + banker.PokersScoreBehind) * player.Multiple * banker.GrabTimes
+			player.PokersPoints += (banker.PokersScoreFront + banker.PokersScoreBehind) * (-1) * player.Multiple * banker.GrabTimes
 		}
 	}
 

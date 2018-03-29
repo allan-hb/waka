@@ -134,6 +134,18 @@ type fourNoBankerRoomT struct {
 	StepSwap string
 }
 
+func (r *fourNoBankerRoomT) FourGrabOfFixedBanker(player *playerT, grab bool) {
+	panic("implement me")
+}
+
+func (r *fourNoBankerRoomT) FourSetMultiple(player *playerT, multiple int32) {
+	panic("implement me")
+}
+
+func (r *fourNoBankerRoomT) FourGrabBanker(player *playerT, grab bool, grabTimes int32) {
+	panic("implement me")
+}
+
 func (r *fourNoBankerRoomT) FourGrabAnimation() *four_proto.FourGrabAnimation {
 	panic("implement me")
 }

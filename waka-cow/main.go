@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"os/signal"
 	"runtime"
 	"syscall"
@@ -95,15 +96,15 @@ func wait() {
 			name := "kill.sh"
 			script := fmt.Sprintf("kill %v", pid)
 
-			if err := ioutil.WriteFile(name, []byte(script), 0777); err != nil {
+			if err := ioutil.WriteFile(name, []byte(script), 0755); err != nil {
 				log.WithFields(logrus.Fields{
 					"err": err,
 				}).Errorln("write kill script failed")
 			}
-			if err := os.Chmod(name, 777); err != nil {
-				log.WithFields(logrus.Fields{
-					"err": err,
-				}).Errorln("chmod kill script failed")
+
+			if err := exec.Command("/bin/sh", "-c", "chmod 0755 kill.sh").Run(); err != nil {
+				log.Printf("chmod kill script failed: %v\n", err)
+				return
 			}
 
 			defer os.Remove(name)

@@ -9,7 +9,7 @@ func (my *actorT) lever28BagClock() {
 
 	if len(my.lever28Bags) != originNumber {
 		for _, player := range my.players.SelectOnline() {
-			my.sendLever28UpdateRedPaperBagList(player.Player, my.lever28Bags)
+			my.sendLever28UpdateBagList(player.Player, my.lever28Bags)
 		}
 	}
 }

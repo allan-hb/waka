@@ -3,8 +3,8 @@ package hall
 import (
 	"time"
 
-	"github.com/liuhan907/waka/waka-cow/conf"
 	"github.com/sirupsen/logrus"
+	linq "gopkg.in/ahmetb/go-linq.v3"
 
 	"github.com/liuhan907/waka/waka-cow/database"
 	"github.com/liuhan907/waka/waka-cow/modules/hall/tools/lever28"
@@ -25,13 +25,9 @@ type lever28BagPlayerT struct {
 	Lookup     bool
 }
 
-func (player *lever28BagPlayerT) PbPlayer() *waka.Player {
-	return player.Bag.Hall.ToPlayer(player.Player)
-}
-
-func (player *lever28BagPlayerT) Lever28RedPaperBag3RedPlayer() *waka.Lever28RedPaperBag3_RedPlayer {
-	r := &waka.Lever28RedPaperBag3_RedPlayer{
-		Player:     player.Bag.Hall.ToPlayer(player.Player),
+func (player *lever28BagPlayerT) Lever28BagClearPlayerData() *cow_proto.Lever28BagClear_PlayerData {
+	r := &cow_proto.Lever28BagClear_PlayerData{
+		Player:     int32(player.Player),
 		Pay:        player.Pay,
 		Grab:       player.Grab,
 		GrabCharge: player.GrabCharge,
@@ -48,20 +44,11 @@ func (player *lever28BagPlayerT) Lever28RedPaperBag3RedPlayer() *waka.Lever28Red
 
 type lever28BagPlayerMapT map[database.Player]*lever28BagPlayerT
 
-func (players lever28BagPlayerMapT) PbPlayer() []*waka.Player {
-	var d []*waka.Player
+func (players lever28BagPlayerMapT) Lever28BagClearPlayerData() (r []*cow_proto.Lever28BagClear_PlayerData) {
 	for _, player := range players {
-		d = append(d, player.PbPlayer())
+		r = append(r, player.Lever28BagClearPlayerData())
 	}
-	return d
-}
-
-func (players lever28BagPlayerMapT) Lever28RedPaperBag3RedPlayer() []*waka.Lever28RedPaperBag3_RedPlayer {
-	var d []*waka.Lever28RedPaperBag3_RedPlayer
-	for _, player := range players {
-		d = append(d, player.Lever28RedPaperBag3RedPlayer())
-	}
-	return d
+	return r
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -75,7 +62,7 @@ type lever28BagT struct {
 	Hall *actorT
 
 	Id        int32
-	Option    *waka.Lever28RedPaperBagOption
+	Option    *cow_proto.Lever28BagOption
 	Creator   *lever28CreatorT
 	Players   lever28BagPlayerMapT
 	CreateAt  time.Time
@@ -87,34 +74,23 @@ type lever28BagT struct {
 	RemainMoney []int32
 }
 
-func (bag *lever28BagT) Lever28RedPaperBag1(player database.Player) *waka.Lever28RedPaperBag1 {
-	playerData := bag.Creator.Player.PlayerData()
-	_, myGrabbed := bag.Players[player]
-	return &waka.Lever28RedPaperBag1{
-		Id:           bag.Id,
-		Option:       bag.Option,
-		PlayerNumber: int32(len(bag.Players)),
-		Creator: &waka.Lever28RedPaperBag1_RedPlayer{
-			Nickname: playerData.Nickname,
-			Head:     playerData.Head,
-		},
-		MyGrabbed: myGrabbed,
-	}
-}
-
-func (bag *lever28BagT) Lever28RedPaperBag2() *waka.Lever28RedPaperBag2 {
-	return &waka.Lever28RedPaperBag2{
+func (bag *lever28BagT) Lever28Bag() *cow_proto.Lever28Bag {
+	r := &cow_proto.Lever28Bag{
 		Id:      bag.Id,
 		Option:  bag.Option,
-		Players: bag.Players.PbPlayer(),
+		Creator: int32(bag.Creator.Player),
 	}
+	linq.From(bag.Players).SelectT(func(in linq.KeyValue) int32 {
+		return int32(in.Value.(*lever28BagPlayerT).Player)
+	}).ToSlice(&r.Players)
+	return r
 }
 
-func (bag *lever28BagT) Lever28RedPaperBag3() *waka.Lever28RedPaperBag3 {
-	return &waka.Lever28RedPaperBag3{
+func (bag *lever28BagT) Lever28BagClear() *cow_proto.Lever28BagClear {
+	return &cow_proto.Lever28BagClear{
 		Id:       bag.Id,
 		Option:   bag.Option,
-		Players:  bag.Players.Lever28RedPaperBag3RedPlayer(),
+		Players:  bag.Players.Lever28BagClearPlayerData(),
 		UsedTime: int32(bag.FinallyAt.Sub(bag.CreateAt).Seconds()),
 	}
 }
@@ -139,15 +115,14 @@ func (bag *lever28BagT) RemainTime() int32 {
 
 type lever28BagMapT map[int32]*lever28BagT
 
-func (bags lever28BagMapT) Lever28RedPaperBag1(player database.Player) []*waka.Lever28RedPaperBag1 {
-	var d []*waka.Lever28RedPaperBag1
+func (bags lever28BagMapT) Lever28Bag(player database.Player) (r []*cow_proto.Lever28Bag) {
 	for _, bag := range bags {
 		if int32(len(bag.Players)) < 4 ||
 			(bag.Players[player] != nil && !bag.Players[player].Lookup) {
-			d = append(d, bag.Lever28RedPaperBag1(player))
+			r = append(r, bag.Lever28Bag())
 		}
 	}
-	return d
+	return r
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -156,10 +131,11 @@ func (bag *lever28BagT) Left(player database.Player) {}
 
 func (bag *lever28BagT) Recover(player database.Player) {
 	bag.Hall.sendLever28GrabSuccess(player)
-	bag.Hall.sendLever28UpdateRedPaperBag(player, bag)
+	bag.Hall.sendLever28Deadline(player, bag.DeadAt.Unix())
+	bag.Hall.sendLever28UpdateBag(player, bag)
 }
 
-func (bag *lever28BagT) Create(hall *actorT, id int32, option *waka.Lever28RedPaperBagOption, creator database.Player) {
+func (bag *lever28BagT) Create(hall *actorT, id int32, option *cow_proto.Lever28BagOption, creator database.Player) {
 	*bag = lever28BagT{
 		Hall:   hall,
 		Id:     id,
@@ -177,7 +153,7 @@ func (bag *lever28BagT) Create(hall *actorT, id int32, option *waka.Lever28RedPa
 		log.WithFields(logrus.Fields{
 			"creator": creator,
 		}).Debugln("create lever28 but player not found")
-		bag.Hall.sendLever28CreateRedPaperBagFailed(creator, 0)
+		bag.Hall.sendLever28CreateBagFailed(creator, 0)
 		return
 	}
 
@@ -187,7 +163,7 @@ func (bag *lever28BagT) Create(hall *actorT, id int32, option *waka.Lever28RedPa
 			"option":       option.String(),
 			"create_money": bag.CreateMoney(),
 		}).Debugln("create lever28 but money not enough")
-		bag.Hall.sendLever28CreateRedPaperBagFailed(creator, 1)
+		bag.Hall.sendLever28CreateBagFailed(creator, 1)
 		return
 	}
 
@@ -198,7 +174,7 @@ func (bag *lever28BagT) Create(hall *actorT, id int32, option *waka.Lever28RedPa
 			"option":  option.String(),
 			"err":     err,
 		}).Warnln("create lever28 but split money failed")
-		bag.Hall.sendLever28CreateRedPaperBagFailed(creator, 0)
+		bag.Hall.sendLever28CreateBagFailed(creator, 0)
 		return
 	}
 
@@ -211,7 +187,7 @@ func (bag *lever28BagT) Create(hall *actorT, id int32, option *waka.Lever28RedPa
 			"option":  option.String(),
 			"err":     err,
 		}).Warnln("create lever28 but freeze money failed")
-		bag.Hall.sendLever28CreateRedPaperBagFailed(creator, 0)
+		bag.Hall.sendLever28CreateBagFailed(creator, 0)
 		return
 	}
 
@@ -219,7 +195,7 @@ func (bag *lever28BagT) Create(hall *actorT, id int32, option *waka.Lever28RedPa
 
 	bag.Hall.lever28Bags[bag.Id] = bag
 
-	bag.Hall.sendLever28CreateRedPaperBagSuccess(creator, bag.Id)
+	bag.Hall.sendLever28CreateBagSuccess(creator, bag.Id)
 
 	log.WithFields(logrus.Fields{
 		"creator": creator,
@@ -235,7 +211,7 @@ func (bag *lever28BagT) Grab(player *playerT) {
 	if being {
 		player.InsideLever28 = bag.Id
 		bag.Hall.sendLever28GrabSuccess(player.Player)
-		bag.Hall.sendLever28UpdateRedPaperBag(player.Player, bag)
+		bag.Hall.sendLever28UpdateBag(player.Player, bag)
 	} else {
 		var freeze database.Freeze
 		var err error
@@ -288,17 +264,16 @@ func (bag *lever28BagT) Grab(player *playerT) {
 		player.InsideLever28 = bag.Id
 
 		bag.Hall.sendLever28GrabSuccess(player.Player)
-		bag.Hall.sendLever28UpdateRedPaperBagForAll(bag)
+		bag.Hall.sendLever28Deadline(player.Player, bag.DeadAt.Unix())
+		bag.Hall.Lever28UpdateBagForAll(bag)
 		for _, player := range bag.Hall.players.SelectOnline() {
-			bag.Hall.sendLever28UpdateRedPaperBagList(player.Player, bag.Hall.lever28Bags)
+			bag.Hall.sendLever28UpdateBagList(player.Player, bag.Hall.lever28Bags)
 		}
 
 		log.WithFields(logrus.Fields{
 			"player": player.Player,
 			"id":     bag.Id,
 		}).Debugln("grab lever28")
-
-		bag.Hall.sendPlayerSecret(player.Player)
 
 		if int32(len(bag.Players)) == 4 {
 			bag.settle()
@@ -308,6 +283,19 @@ func (bag *lever28BagT) Grab(player *playerT) {
 
 func (bag *lever28BagT) settle() {
 	bag.FinallyAt = time.Now()
+
+	costs := &database.Lever28BagCost{}
+	for _, player := range bag.Players {
+		costs.Costs = append(costs.Costs, &database.Lever28Cost{
+			Player: player.Player,
+			Number: 10,
+			Freeze: player.Freeze,
+		})
+		costs.Grabs = append(costs.Grabs, &database.Lever28Grab{
+			Player: player.Player,
+			Number: player.Grab,
+		})
+	}
 
 	// 选择闲家
 	var players []*lever28BagPlayerT
@@ -346,37 +334,50 @@ func (bag *lever28BagT) settle() {
 		if bw > w {
 			banker.Get = banker.Get + bag.Option.Money
 			player.Pay = player.Pay + bag.Option.Money
+
+			costs.Pays = append(costs.Pays, &database.Lever28Pay{
+				Payer:  player.Player,
+				Payee:  banker.Player,
+				Number: bag.Option.Money,
+			})
 		} else if bw < w {
 			player.Get = player.Get + bag.Option.Money
 			banker.Pay = banker.Pay + bag.Option.Money
+
+			costs.Pays = append(costs.Pays, &database.Lever28Pay{
+				Payer:  banker.Player,
+				Payee:  player.Player,
+				Number: bag.Option.Money,
+			})
 		} else if banker.Grab > player.Grab {
 			banker.Get = banker.Get + bag.Option.Money
 			player.Pay = player.Pay + bag.Option.Money
+
+			costs.Pays = append(costs.Pays, &database.Lever28Pay{
+				Payer:  player.Player,
+				Payee:  banker.Player,
+				Number: bag.Option.Money,
+			})
 		} else if banker.Grab < player.Grab {
 			player.Get = player.Get + bag.Option.Money
 			banker.Pay = banker.Pay + bag.Option.Money
+
+			costs.Pays = append(costs.Pays, &database.Lever28Pay{
+				Payer:  banker.Player,
+				Payee:  player.Player,
+				Number: bag.Option.Money,
+			})
 		}
 	}
 
 	// 计算手续费
 	for _, player := range bag.Players {
-		player.GrabCharge = int32(float64(player.Grab)*float64(float64(conf.Option.Hall.WaterRate)/100) + 0.5)
-		player.GetCharge = int32(float64(player.Get)*float64(float64(conf.Option.Hall.WaterRate)/100) + 0.5)
-	}
-
-	cost := &database.Lever28Cost{}
-	for _, player := range bag.Players {
-		cost.Players = append(cost.Players, &database.Lever28PlayerCost{
-			Player: player.Player,
-			Grab:   player.Grab + player.Get,
-			Charge: player.GrabCharge + player.GetCharge,
-			Pay:    player.Pay + 10*100,
-			Freeze: player.Freeze,
-		})
+		player.GrabCharge = int32(float64(player.Grab)*0.05 + 0.5)
+		player.GetCharge = int32(float64(player.Get)*0.05 + 0.5)
 	}
 
 	// 结算
-	if err := database.Lever28Settle(cost); err != nil {
+	if err := database.Lever28Settle(costs); err != nil {
 		log.WithFields(logrus.Fields{
 			"id":      bag.Id,
 			"option":  bag.Option.String(),
@@ -384,7 +385,7 @@ func (bag *lever28BagT) settle() {
 			"err":     err,
 		}).Warnln("lever28 settle failed")
 	} else {
-		err := database.Lever28AddHandWarHistory(bag.Creator.Player, bag.Lever28RedPaperBag3())
+		err := database.Lever28AddHandHistory(bag.Creator.Player, bag.Lever28BagClear())
 		if err != nil {
 			log.WithFields(logrus.Fields{
 				"err": err,
@@ -392,7 +393,7 @@ func (bag *lever28BagT) settle() {
 		}
 		for _, player := range bag.Players {
 			if bag.Creator.Player != player.Player {
-				err := database.Lever28AddGrabWarHistory(player.Player, bag.Lever28RedPaperBag3())
+				err := database.Lever28AddGrabHistory(player.Player, bag.Lever28BagClear())
 				if err != nil {
 					log.WithFields(logrus.Fields{
 						"err": err,
@@ -404,11 +405,7 @@ func (bag *lever28BagT) settle() {
 		bag.Settled = true
 
 		for _, player := range bag.Hall.players.SelectOnline() {
-			bag.Hall.sendLever28UpdateRedPaperBagList(player.Player, bag.Hall.lever28Bags)
-		}
-
-		for _, player := range bag.Players {
-			bag.Hall.sendPlayerSecret(player.Player)
+			bag.Hall.sendLever28UpdateBagList(player.Player, bag.Hall.lever28Bags)
 		}
 
 		log.WithFields(logrus.Fields{
@@ -418,13 +415,7 @@ func (bag *lever28BagT) settle() {
 }
 
 func (bag *lever28BagT) Clock() {
-	if bag.RemainTime() > 0 && len(bag.Players) < 4 {
-		for _, player := range bag.Players {
-			if player := bag.Hall.players[player.Player]; player != nil && player.InsideLever28 == bag.Id {
-				bag.Hall.sendLever28RedPaperBagCountdown(player.Player, bag.RemainTime())
-			}
-		}
-	} else if bag.RemainTime() <= 0 {
+	if bag.RemainTime() <= 0 {
 		delete(bag.Hall.lever28Bags, bag.Id)
 
 		if !bag.Settled {
@@ -444,16 +435,12 @@ func (bag *lever28BagT) Clock() {
 					}).Warnln("recover freeze money failed")
 				}
 			}
-
-			for _, player := range bag.Players {
-				bag.Hall.sendPlayerSecret(player.Player)
-			}
 		}
 
 		for _, player := range bag.Players {
 			if player := bag.Hall.players[player.Player]; player != nil {
 				if player.InsideLever28 == bag.Id {
-					bag.Hall.sendLever28RedPaperBagDestory(player.Player, bag.Id)
+					bag.Hall.sendLever28BagDestroyed(player.Player, bag.Id)
 				}
 				player.InsideLever28 = 0
 			}

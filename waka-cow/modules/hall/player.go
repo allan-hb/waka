@@ -30,20 +30,13 @@ func (my playerMap) SelectOnline() playerMap {
 	return r
 }
 
-func (my playerMap) ToSlice() (d []int32) {
-	for _, player := range my {
-		d = append(d, int32(player.Player))
-	}
-	return d
-}
-
 // ---------------------------------------------------------------------------------------------------------------------
 
-func (my *actorT) ToPlayer(player database.Player) (pb *waka.Player) {
-	pb = &waka.Player{}
+func (my *actorT) ToPlayer(player database.Player) (pb *cow_proto.Player) {
+	pb = &cow_proto.Player{}
 
 	playerData := player.PlayerData()
-	pb.Id = int32(playerData.Ref)
+	pb.Id = int32(playerData.Id)
 	pb.Nickname = playerData.Nickname
 	pb.Head = playerData.Head
 	pb.Money = playerData.Money / 100
@@ -61,12 +54,12 @@ func (my *actorT) ToPlayer(player database.Player) (pb *waka.Player) {
 	return pb
 }
 
-func (my *actorT) ToPlayerSecret(player database.Player) (pb *waka.PlayerSecret) {
-	pb = &waka.PlayerSecret{}
+func (my *actorT) ToPlayerSecret(player database.Player) (pb *cow_proto.PlayerSecret) {
+	pb = &cow_proto.PlayerSecret{}
 
 	playerData := player.PlayerData()
-	pb.Id = int32(playerData.Ref)
-	pb.WechatUid = playerData.UnionID
+	pb.Id = int32(playerData.Id)
+	pb.WechatUid = playerData.WechatUnionid
 	pb.Nickname = playerData.Nickname
 	pb.Head = playerData.Head
 	pb.Wechat = playerData.Wechat
@@ -74,7 +67,7 @@ func (my *actorT) ToPlayerSecret(player database.Player) (pb *waka.PlayerSecret)
 	pb.Name = playerData.Name
 	pb.Money = playerData.Money / 100
 	pb.Vip = int64(playerData.Vip.Sub(time.Now()).Seconds() / (24 * 60 * 60))
-	pb.AgentId = int32(playerData.Supervisor)
+	pb.Supervisor = int32(playerData.Supervisor)
 	pb.CreatedAt = playerData.CreatedAt.Format("2006-01-02 15:04:05")
 
 	localPlayer, being := my.players[player]
@@ -88,7 +81,7 @@ func (my *actorT) ToPlayerSecret(player database.Player) (pb *waka.PlayerSecret)
 	return pb
 }
 
-func (my *actorT) ToPlayerMap(players map[database.Player]database.Player) (pb []*waka.Player) {
+func (my *actorT) ToPlayerMap(players map[database.Player]database.Player) (pb []*cow_proto.Player) {
 	for _, player := range players {
 		pb = append(pb, my.ToPlayer(player))
 	}

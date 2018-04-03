@@ -5,12 +5,10 @@ import (
 
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 )
 
 var (
 	ErrFreezeRecovered = errors.New("freeze recovered")
-	ErrMoneyNotEnough  = errors.New("money not enough")
 )
 
 // 冻结记录
@@ -19,9 +17,9 @@ type Freeze int32
 // 冻结记录数据
 type FreezeData struct {
 	// 主键
-	Ref Freeze `gorm:"index;primary_key;AUTO_INCREMENT"`
+	Id Freeze `gorm:"index;unique;primary_key;AUTO_INCREMENT"`
 	// 冻结记录所属玩家
-	Player Player `gorm:"index"`
+	Player Player
 	// 被冻结的钱
 	Number int32
 	// 已恢复
@@ -34,8 +32,8 @@ func (FreezeData) TableName() string {
 	return "freezes"
 }
 
-func freezeMoney(ts *gorm.DB, ref Player, number int32) (Freeze, error) {
-	if err := ts.Model(&PlayerData{}).Where("ref = ?", ref).Updates(
+func freezeMoney(ts *gorm.DB, id Player, number int32) (Freeze, error) {
+	if err := ts.Model(&PlayerData{}).Where("id = ?", id).Updates(
 		map[string]interface{}{
 			"money": gorm.Expr("money - ?", number),
 		},
@@ -44,7 +42,7 @@ func freezeMoney(ts *gorm.DB, ref Player, number int32) (Freeze, error) {
 	}
 
 	player := PlayerData{
-		Ref: ref,
+		Id: id,
 	}
 	if err := ts.First(&player).Error; err != nil {
 		return 0, err
@@ -55,7 +53,7 @@ func freezeMoney(ts *gorm.DB, ref Player, number int32) (Freeze, error) {
 	}
 
 	freezeData := FreezeData{
-		Player:    ref,
+		Player:    id,
 		Number:    number,
 		CreatedAt: time.Now(),
 	}
@@ -63,34 +61,38 @@ func freezeMoney(ts *gorm.DB, ref Player, number int32) (Freeze, error) {
 		return 0, err
 	}
 
-	return freezeData.Ref, nil
+	return freezeData.Id, nil
 }
 
-func recoverFreezeMoney(ts *gorm.DB, ref Freeze) (Player, error) {
+func recoverFreezeMoney(ts *gorm.DB, id Freeze) (Player, int32, error) {
 	var freezeData FreezeData
-	if err := ts.Where("ref = ?", ref).First(&freezeData).Error; err != nil {
-		return 0, err
+	if err := ts.Where("id = ?", id).First(&freezeData).Error; err != nil {
+		return 0, 0, err
 	}
 
 	if freezeData.Recovered {
-		return 0, ErrFreezeRecovered
+		return 0, 0, ErrFreezeRecovered
 	}
 
-	if err := ts.Model(&PlayerData{}).Where("ref = ?", freezeData.Player).Updates(
+	if err := ts.Model(&PlayerData{}).Where("id = ?", freezeData.Player).Updates(
 		map[string]interface{}{
 			"money": gorm.Expr("money + ?", freezeData.Number),
 		},
 	).Error; err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 
 	freezeData.Recovered = true
 	if err := ts.Save(&freezeData).Error; err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 
-	return freezeData.Player, nil
+	return freezeData.Player, freezeData.Number, nil
 }
+
+var (
+	ErrMoneyNotEnough = errors.New("money not enough")
+)
 
 type modifyMoneyAction struct {
 	Player Player
@@ -99,7 +101,7 @@ type modifyMoneyAction struct {
 	After  func(ts *gorm.DB, self *modifyMoneyAction) error
 }
 
-func applyModifyMoneyAction(ts *gorm.DB, modifies []*modifyMoneyAction) error {
+func applyModifyMoneyActions(ts *gorm.DB, modifies []*modifyMoneyAction) error {
 	for _, modify := range modifies {
 		zeroCheck := false
 		if modify.Number < 0 {
@@ -131,7 +133,7 @@ func modifyMoney(ts *gorm.DB, player Player, money int32, zeroCheck bool) error 
 		return nil
 	}
 
-	if err := ts.Model(&PlayerData{}).Where("ref = ?", player).Updates(
+	if err := ts.Model(&PlayerData{}).Where("id = ?", player).Updates(
 		map[string]interface{}{
 			"money": gorm.Expr("money + ?", money),
 		},
@@ -140,7 +142,7 @@ func modifyMoney(ts *gorm.DB, player Player, money int32, zeroCheck bool) error 
 	}
 	if zeroCheck {
 		player := PlayerData{
-			Ref: player,
+			Id: player,
 		}
 		if err := ts.First(&player).Error; err != nil {
 			return err
@@ -151,33 +153,4 @@ func modifyMoney(ts *gorm.DB, player Player, money int32, zeroCheck bool) error 
 		}
 	}
 	return nil
-}
-
-func recoverFreezeMoneyAfterLast() {
-	var freezes []*FreezeData
-
-	ts := mysql.Begin()
-
-	if err := ts.Where("recovered = ?", false).Find(&freezes).Error; err != nil {
-		log.WithFields(logrus.Fields{
-			"err": err,
-		}).Warnln("query last freeze money records failed")
-		ts.Rollback()
-		return
-	}
-
-	for _, freeze := range freezes {
-		if _, err := recoverFreezeMoney(ts, freeze.Ref); err != nil {
-			log.WithFields(logrus.Fields{
-				"freeze": freeze.Ref,
-				"player": freeze.Player,
-				"number": freeze.Number,
-				"err":    err,
-			}).Warnln("recover freeze money failed")
-			ts.Rollback()
-			return
-		}
-	}
-
-	ts.Commit()
 }

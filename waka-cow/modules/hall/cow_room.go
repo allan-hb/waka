@@ -12,11 +12,10 @@ type cowRoom interface {
 	Left(player *playerT)
 	Recover(player *playerT)
 
-	CreateRoom(hall *actorT, id int32, option *waka.NiuniuRoomOption, creator database.Player) cowRoom
+	CreateRoom(hall *actorT, id int32, roomType cow_proto.NiuniuRoomType, option *cow_proto.NiuniuRoomOption, creator database.Player)
 	JoinRoom(player *playerT)
 	LeaveRoom(player *playerT)
 	SwitchReady(player *playerT)
-	SwitchRole(player *playerT)
 	Dismiss(player *playerT)
 	Start(player *playerT)
 	SpecifyBanker(player *playerT, banker database.Player)
@@ -26,44 +25,32 @@ type cowRoom interface {
 	ContinueWith(player *playerT)
 
 	CreateMoney() int32
-	EnterMoney() int32
-	LeaveMoney() int32
-	CostMoney() int32
+	JoinMoney() int32
+	StartMoney() int32
 
-	GetType() waka.NiuniuRoomType
+	GetType() cow_proto.NiuniuRoomType
 	GetId() int32
-	GetOption() *waka.NiuniuRoomOption
+	GetOption() *cow_proto.NiuniuRoomOption
 	GetCreator() database.Player
 	GetOwner() database.Player
 	GetGaming() bool
 	GetRoundNumber() int32
 	GetBanker() database.Player
-
 	GetPlayers() []database.Player
-	GetObservers() []database.Player
 
-	NiuniuRoomData1() *waka.NiuniuRoomData1
-	NiuniuRoomData2() *waka.NiuniuRoomData2
-	NiuniuRoundStatus(player database.Player) *waka.NiuniuRoundStatus
-	NiuniuGrabAnimation() *waka.NiuniuGrabAnimation
-	NiuniuRoundClear() *waka.NiuniuRoundClear
-	NiuniuRoundFinally() *waka.NiuniuRoundFinally
+	NiuniuRoomData() *cow_proto.NiuniuRoomData
+	NiuniuRoundStatus(player database.Player) *cow_proto.NiuniuRoundStatus
+	NiuniuRequireGrabShow() *cow_proto.NiuniuRequireGrabShow
+	NiuniuRoundClear() *cow_proto.NiuniuRoundClear
+	NiuniuGameFinally() *cow_proto.NiuniuGameFinally
 }
 
 type cowRoomMapT map[int32]cowRoom
 
-func (cows cowRoomMapT) NiuniuRoomData1() []*waka.NiuniuRoomData1 {
-	var d []*waka.NiuniuRoomData1
+func (cows cowRoomMapT) NiuniuRoomData() []*cow_proto.NiuniuRoomData {
+	var d []*cow_proto.NiuniuRoomData
 	for _, r := range cows {
-		d = append(d, r.NiuniuRoomData1())
-	}
-	return d
-}
-
-func (cows cowRoomMapT) NiuniuRoomData2() []*waka.NiuniuRoomData2 {
-	var d []*waka.NiuniuRoomData2
-	for _, r := range cows {
-		d = append(d, r.NiuniuRoomData2())
+		d = append(d, r.NiuniuRoomData())
 	}
 	return d
 }
@@ -73,7 +60,7 @@ func (cows cowRoomMapT) NiuniuRoomData2() []*waka.NiuniuRoomData2 {
 func (cows cowRoomMapT) WherePlayer() cowRoomMapT {
 	d := make(cowRoomMapT, len(cows))
 	for _, r := range cows {
-		if r.GetType() != waka.NiuniuRoomType_Agent {
+		if r.GetType() != cow_proto.NiuniuRoomType_Flowing {
 			d[r.GetId()] = r
 		}
 	}
@@ -83,7 +70,7 @@ func (cows cowRoomMapT) WherePlayer() cowRoomMapT {
 func (cows cowRoomMapT) WhereOrder() cowRoomMapT {
 	d := make(cowRoomMapT, len(cows))
 	for _, r := range cows {
-		if r.GetType() == waka.NiuniuRoomType_Order {
+		if r.GetType() == cow_proto.NiuniuRoomType_Order {
 			d[r.GetId()] = r
 		}
 	}
@@ -93,37 +80,17 @@ func (cows cowRoomMapT) WhereOrder() cowRoomMapT {
 func (cows cowRoomMapT) WherePayForAnother() cowRoomMapT {
 	d := make(cowRoomMapT, len(cows))
 	for _, r := range cows {
-		if r.GetType() == waka.NiuniuRoomType_PayForAnother {
+		if r.GetType() == cow_proto.NiuniuRoomType_PayForAnother {
 			d[r.GetId()] = r
 		}
 	}
 	return d
 }
 
-func (cows cowRoomMapT) WhereSupervisor() cowRoomMapT {
+func (cows cowRoomMapT) WhereFlowing() cowRoomMapT {
 	d := make(cowRoomMapT, len(cows))
 	for _, r := range cows {
-		if r.GetType() == waka.NiuniuRoomType_Agent {
-			d[r.GetId()] = r
-		}
-	}
-	return d
-}
-
-func (cows cowRoomMapT) WhereIdle() cowRoomMapT {
-	d := make(cowRoomMapT, len(cows))
-	for _, r := range cows {
-		if len(r.GetPlayers())+len(r.GetObservers()) == 0 {
-			d[r.GetId()] = r
-		}
-	}
-	return d
-}
-
-func (cows cowRoomMapT) WhereCreator(player database.Player) cowRoomMapT {
-	d := make(cowRoomMapT, len(cows))
-	for _, r := range cows {
-		if r.GetCreator() == player {
+		if r.GetType() == cow_proto.NiuniuRoomType_Flowing {
 			d[r.GetId()] = r
 		}
 	}
@@ -144,6 +111,36 @@ func (cows cowRoomMapT) WhereMode(mode int32) cowRoomMapT {
 	d := make(cowRoomMapT, len(cows))
 	for _, r := range cows {
 		if r.GetOption().GetMode() == mode {
+			d[r.GetId()] = r
+		}
+	}
+	return d
+}
+
+func (cows cowRoomMapT) WhereCreator(creator database.Player) cowRoomMapT {
+	d := make(cowRoomMapT, len(cows))
+	for _, r := range cows {
+		if r.GetCreator() == creator {
+			d[r.GetId()] = r
+		}
+	}
+	return d
+}
+
+func (cows cowRoomMapT) WhereIdle() cowRoomMapT {
+	d := make(cowRoomMapT, len(cows))
+	for _, r := range cows {
+		if len(r.GetPlayers()) == 0 {
+			d[r.GetId()] = r
+		}
+	}
+	return d
+}
+
+func (cows cowRoomMapT) WhereReady() cowRoomMapT {
+	d := make(cowRoomMapT, len(cows))
+	for _, r := range cows {
+		if !r.GetGaming() && len(r.GetPlayers()) < 5 {
 			d[r.GetId()] = r
 		}
 	}

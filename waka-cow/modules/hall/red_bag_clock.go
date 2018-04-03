@@ -9,7 +9,7 @@ func (my *actorT) redBagClock() {
 
 	if len(my.redBags) != originNumber {
 		for _, player := range my.players.SelectOnline() {
-			my.sendRedUpdateRedPaperBagList(player.Player, my.redBags)
+			my.sendRedUpdateBagList(player.Player, my.redBags)
 		}
 	}
 }

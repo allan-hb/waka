@@ -73,7 +73,6 @@ func Spawn(supervisor *actor.PID) *actor.PID {
 		supervisor:              supervisor,
 		players:                 make(playerMap, 12800),
 		cowRooms:                make(cowRoomMapT, 12800),
-		cowIdleRooms:            make(map[int32]int32, 12800),
 		cowPlayerNumberPool:     tools.NewNumberPool(10001, 89999, true),
 		cowSupervisorNumberPool: tools.NewNumberPool(100001, 899999, true),
 		redBags:                 make(redBagMapT, 12800),

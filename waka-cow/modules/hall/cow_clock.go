@@ -4,6 +4,19 @@ import (
 	"github.com/liuhan907/waka/waka-cow/database"
 	"github.com/liuhan907/waka/waka-cow/proto"
 	"github.com/sirupsen/logrus"
+	"gopkg.in/ahmetb/go-linq.v3"
+)
+
+type flowingMode struct {
+	Mode  int32
+	Score int32
+}
+
+var (
+	flowingModes = []flowingMode{
+		{0, 2}, {0, 5}, {0, 10}, {0, 20}, {0, 50}, {0, 100}, {0, 200}, {0, 500},
+		{1, 2}, {1, 5}, {1, 10}, {1, 20}, {1, 50}, {1, 100}, {1, 200}, {1, 500},
+	}
 )
 
 func (my *actorT) cowClock1() {
@@ -13,96 +26,43 @@ func (my *actorT) cowClock1() {
 }
 
 func (my *actorT) cowClock3() {
-	for _, r := range my.cowRooms.WhereSupervisor() {
-		if len(r.GetPlayers())+len(r.GetObservers()) != 0 {
-			my.cowIdleRooms[r.GetId()] = 0
-		} else {
-			c := my.cowIdleRooms[r.GetId()]
-			c++
-			my.cowIdleRooms[r.GetId()] = c
-		}
+	for _, mode := range flowingModes {
+		r1 := my.cowRooms.
+			WhereFlowing().
+			WhereScore(mode.Score).
+			WhereMode(mode.Mode).
+			WhereReady()
 
-		if my.cowIdleRooms[r.GetId()] >= 10 {
-			idleRooms := my.cowRooms.
-				WhereSupervisor().
-				WhereCreator(r.GetCreator()).
-				WhereScore(r.GetOption().GetScore()).
-				WhereMode(r.GetOption().GetMode()).
-				WhereIdle()
-			if len(idleRooms) > 1 {
-				delete(my.cowRooms, r.GetId())
-				delete(my.cowIdleRooms, r.GetId())
-
+		if len(r1) == 0 {
+			id, ok := my.cowSupervisorNumberPool.Acquire()
+			if ok {
+				r := new(supervisorRoomT)
+				r.CreateRoom(
+					my,
+					id,
+					cow_proto.NiuniuRoomType_Flowing,
+					&cow_proto.NiuniuRoomOption{
+						Banker: 2,
+						Mode:   mode.Mode,
+						Score:  mode.Score,
+					},
+					database.DefaultSupervisor,
+				)
+				my.cowRooms[id] = r
 				log.WithFields(logrus.Fields{
-					"creator": r.GetCreator(),
-					"mode":    r.GetOption().GetMode(),
-					"score":   r.GetOption().GetScore(),
-					"id":      r.GetId(),
-				}).Debugln("supervisor room removed")
-			} else {
-				my.cowIdleRooms[r.GetId()] = 0
+					"score":   mode.Mode,
+					"mode":    mode.Score,
+					"room_id": id,
+				}).Debugln("flowing room created")
 			}
-		}
-	}
-}
+		} else {
+			r2 := r1.WhereIdle()
+			r3 := r1.WhereReady()
 
-func (my *actorT) cowClock30() {
-	supervisors, err := database.QuerySupervisorList()
-	if err != nil {
-		log.WithFields(logrus.Fields{
-			"err": err,
-		}).Warnln("query supervisor list failed")
-		return
-	}
-
-	for _, supervisor := range supervisors {
-		for _, score := range supervisor.BaseScores {
-			rooms := my.cowRooms.
-				WhereSupervisor().
-				WhereCreator(supervisor.Player).
-				WhereScore(score).
-				WhereMode(0)
-			if len(rooms) == 0 {
-				id, ok := my.cowSupervisorNumberPool.Acquire()
-				if ok {
-					my.cowRooms[id] = new(supervisorRoomT).CreateRoom(my, id, &waka.NiuniuRoomOption{
-						Banker: 2,
-						Mode:   0,
-						Score:  score,
-					}, supervisor.Player)
-
-					log.WithFields(logrus.Fields{
-						"supervisor": supervisor.Ref,
-						"player":     supervisor.Player,
-						"score":      score,
-						"mode":       0,
-						"room_id":    id,
-					}).Debugln("supervisor room created")
-				}
-			}
-
-			rooms = my.cowRooms.
-				WhereSupervisor().
-				WhereCreator(supervisor.Player).
-				WhereScore(score).
-				WhereMode(1)
-			if len(rooms) == 0 {
-				id, ok := my.cowSupervisorNumberPool.Acquire()
-				if ok {
-					my.cowRooms[id] = new(supervisorRoomT).CreateRoom(my, id, &waka.NiuniuRoomOption{
-						Banker: 2,
-						Mode:   1,
-						Score:  score,
-					}, supervisor.Player)
-
-					log.WithFields(logrus.Fields{
-						"supervisor": supervisor.Ref,
-						"player":     supervisor.Player,
-						"score":      score,
-						"mode":       1,
-						"room_id":    id,
-					}).Debugln("supervisor room created")
-				}
+			if len(r3) > 0 && len(r2) > 0 {
+				linq.From(r2).Except(linq.From(r3)).ForEachT(func(in cowRoom) {
+					delete(my.cowRooms, in.GetId())
+				})
 			}
 		}
 	}

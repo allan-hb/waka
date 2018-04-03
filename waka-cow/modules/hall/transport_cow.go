@@ -1,38 +1,37 @@
 package hall
 
 import (
+	"github.com/sirupsen/logrus"
+
 	"github.com/liuhan907/waka/waka-cow/database"
 	"github.com/liuhan907/waka/waka-cow/modules/hall/tools/cow"
 	"github.com/liuhan907/waka/waka-cow/proto"
 	"github.com/liuhan907/waka/waka/modules/supervisor/supervisor_message"
-	"github.com/sirupsen/logrus"
 )
 
 func (my *actorT) playerTransportedCow(player *playerT, ev *supervisor_message.PlayerTransported) bool {
 	switch evd := ev.Payload.(type) {
-	case *waka.NiuniuCreateRoom:
+	case *cow_proto.NiuniuCreateRoom:
 		my.NiuniuCreateRoom(player, evd)
-	case *waka.NiuniuJoinRoom:
+	case *cow_proto.NiuniuJoinRoom:
 		my.NiuniuJoinRoom(player, evd)
-	case *waka.NiuniuLeaveRoom:
+	case *cow_proto.NiuniuLeaveRoom:
 		my.NiuniuLeaveRoom(player, evd)
-	case *waka.NiuniuSwitchReady:
+	case *cow_proto.NiuniuSwitchReady:
 		my.NiuniuSwitchReady(player, evd)
-	case *waka.NiuniuSwitchRole:
-		my.NiuniuSwitchRole(player, evd)
-	case *waka.NiuniuDismiss:
+	case *cow_proto.NiuniuDismiss:
 		my.NiuniuDismiss(player, evd)
-	case *waka.NiuniuStart:
+	case *cow_proto.NiuniuStart:
 		my.NiuniuStart(player, evd)
-	case *waka.NiuniuSpecifyBanker:
+	case *cow_proto.NiuniuSpecifyBanker:
 		my.NiuniuSpecifyBanker(player, evd)
-	case *waka.NiuniuGrab:
+	case *cow_proto.NiuniuGrab:
 		my.NiuniuGrab(player, evd)
-	case *waka.NiuniuSpecifyRate:
+	case *cow_proto.NiuniuSpecifyRate:
 		my.NiuniuSpecifyRate(player, evd)
-	case *waka.NiuniuCommitPokers:
+	case *cow_proto.NiuniuCommitPokers:
 		my.NiuniuCommitPokers(player, evd)
-	case *waka.NiuniuContinueWith:
+	case *cow_proto.NiuniuContinueWith:
 		my.NiuniuContinueWith(player, evd)
 	default:
 		return false
@@ -40,7 +39,7 @@ func (my *actorT) playerTransportedCow(player *playerT, ev *supervisor_message.P
 	return true
 }
 
-func (my *actorT) NiuniuCreateRoom(player *playerT, ev *waka.NiuniuCreateRoom) {
+func (my *actorT) NiuniuCreateRoom(player *playerT, ev *cow_proto.NiuniuCreateRoom) {
 	if player.InsideCow != 0 {
 		log.WithFields(logrus.Fields{
 			"player": player.Player,
@@ -49,7 +48,7 @@ func (my *actorT) NiuniuCreateRoom(player *playerT, ev *waka.NiuniuCreateRoom) {
 		return
 	}
 
-	if (ev.GetType() != waka.NiuniuRoomType_Order && ev.GetType() != waka.NiuniuRoomType_PayForAnother) ||
+	if (ev.GetType() != cow_proto.NiuniuRoomType_Order && ev.GetType() != cow_proto.NiuniuRoomType_PayForAnother) ||
 		(ev.Option.GetBanker() < 0 || ev.Option.GetBanker() > 2) ||
 		(ev.Option.GetGames() != 20 && ev.Option.GetGames() != 30 && ev.Option.GetGames() != 40 && ev.Option.GetGames() != 5) ||
 		(ev.Option.GetMode() != 0 && ev.Option.GetMode() != 1) {
@@ -74,18 +73,17 @@ func (my *actorT) NiuniuCreateRoom(player *playerT, ev *waka.NiuniuCreateRoom) {
 	var room cowRoom
 
 	switch ev.GetType() {
-	case waka.NiuniuRoomType_Order:
-		room = new(orderRoomT)
-	case waka.NiuniuRoomType_PayForAnother:
-		room = new(payForAnotherRoomT)
+	case cow_proto.NiuniuRoomType_Order,
+		cow_proto.NiuniuRoomType_PayForAnother:
+		room = new(playerRoomT)
 	default:
 		panic("this code should not be executed")
 	}
 
-	room.CreateRoom(my, id, ev.GetOption(), player.Player)
+	room.CreateRoom(my, id, ev.GetType(), ev.GetOption(), player.Player)
 }
 
-func (my *actorT) NiuniuJoinRoom(player *playerT, ev *waka.NiuniuJoinRoom) {
+func (my *actorT) NiuniuJoinRoom(player *playerT, ev *cow_proto.NiuniuJoinRoom) {
 	if player.InsideCow != 0 {
 		log.WithFields(logrus.Fields{
 			"player": player.Player,
@@ -107,7 +105,7 @@ func (my *actorT) NiuniuJoinRoom(player *playerT, ev *waka.NiuniuJoinRoom) {
 	room.JoinRoom(player)
 }
 
-func (my *actorT) NiuniuLeaveRoom(player *playerT, ev *waka.NiuniuLeaveRoom) {
+func (my *actorT) NiuniuLeaveRoom(player *playerT, ev *cow_proto.NiuniuLeaveRoom) {
 	if player.InsideCow == 0 {
 		log.WithFields(logrus.Fields{
 			"player": player.Player,
@@ -128,7 +126,7 @@ func (my *actorT) NiuniuLeaveRoom(player *playerT, ev *waka.NiuniuLeaveRoom) {
 	room.LeaveRoom(player)
 }
 
-func (my *actorT) NiuniuSwitchReady(player *playerT, ev *waka.NiuniuSwitchReady) {
+func (my *actorT) NiuniuSwitchReady(player *playerT, ev *cow_proto.NiuniuSwitchReady) {
 	if player.InsideCow == 0 {
 		log.WithFields(logrus.Fields{
 			"player": player.Player,
@@ -149,28 +147,7 @@ func (my *actorT) NiuniuSwitchReady(player *playerT, ev *waka.NiuniuSwitchReady)
 	room.SwitchReady(player)
 }
 
-func (my *actorT) NiuniuSwitchRole(player *playerT, ev *waka.NiuniuSwitchRole) {
-	if player.InsideCow == 0 {
-		log.WithFields(logrus.Fields{
-			"player": player.Player,
-		}).Warnln("switch role but not in room")
-		return
-	}
-
-	room, being := my.cowRooms[player.InsideCow]
-	if !being {
-		log.WithFields(logrus.Fields{
-			"player":  player.Player,
-			"room_id": player.InsideCow,
-		}).Warnln("switch role but not room not found")
-		player.InsideCow = 0
-		return
-	}
-
-	room.SwitchRole(player)
-}
-
-func (my *actorT) NiuniuDismiss(player *playerT, ev *waka.NiuniuDismiss) {
+func (my *actorT) NiuniuDismiss(player *playerT, ev *cow_proto.NiuniuDismiss) {
 	roomId := int32(0)
 
 	if ev.GetRoomId() != 0 {
@@ -198,7 +175,7 @@ func (my *actorT) NiuniuDismiss(player *playerT, ev *waka.NiuniuDismiss) {
 	room.Dismiss(player)
 }
 
-func (my *actorT) NiuniuStart(player *playerT, ev *waka.NiuniuStart) {
+func (my *actorT) NiuniuStart(player *playerT, ev *cow_proto.NiuniuStart) {
 	if player.InsideCow == 0 {
 		log.WithFields(logrus.Fields{
 			"player": player.Player,
@@ -219,7 +196,7 @@ func (my *actorT) NiuniuStart(player *playerT, ev *waka.NiuniuStart) {
 	room.Start(player)
 }
 
-func (my *actorT) NiuniuSpecifyBanker(player *playerT, ev *waka.NiuniuSpecifyBanker) {
+func (my *actorT) NiuniuSpecifyBanker(player *playerT, ev *cow_proto.NiuniuSpecifyBanker) {
 	if player.InsideCow == 0 {
 		log.WithFields(logrus.Fields{
 			"player": player.Player,
@@ -240,7 +217,7 @@ func (my *actorT) NiuniuSpecifyBanker(player *playerT, ev *waka.NiuniuSpecifyBan
 	room.SpecifyBanker(player, database.Player(ev.GetBanker()))
 }
 
-func (my *actorT) NiuniuGrab(player *playerT, ev *waka.NiuniuGrab) {
+func (my *actorT) NiuniuGrab(player *playerT, ev *cow_proto.NiuniuGrab) {
 	if player.InsideCow == 0 {
 		log.WithFields(logrus.Fields{
 			"player": player.Player,
@@ -261,7 +238,7 @@ func (my *actorT) NiuniuGrab(player *playerT, ev *waka.NiuniuGrab) {
 	room.Grab(player, ev.GetDoing())
 }
 
-func (my *actorT) NiuniuSpecifyRate(player *playerT, ev *waka.NiuniuSpecifyRate) {
+func (my *actorT) NiuniuSpecifyRate(player *playerT, ev *cow_proto.NiuniuSpecifyRate) {
 	if player.InsideCow == 0 {
 		log.WithFields(logrus.Fields{
 			"player": player.Player,
@@ -286,7 +263,7 @@ func (my *actorT) NiuniuSpecifyRate(player *playerT, ev *waka.NiuniuSpecifyRate)
 	room.SpecifyRate(player, ev.GetRate())
 }
 
-func (my *actorT) NiuniuCommitPokers(player *playerT, ev *waka.NiuniuCommitPokers) {
+func (my *actorT) NiuniuCommitPokers(player *playerT, ev *cow_proto.NiuniuCommitPokers) {
 	if player.InsideCow == 0 {
 		log.WithFields(logrus.Fields{
 			"player": player.Player,
@@ -312,7 +289,7 @@ func (my *actorT) NiuniuCommitPokers(player *playerT, ev *waka.NiuniuCommitPoker
 	room.CommitPokers(player, ev.GetPokers())
 }
 
-func (my *actorT) NiuniuContinueWith(player *playerT, ev *waka.NiuniuContinueWith) {
+func (my *actorT) NiuniuContinueWith(player *playerT, ev *cow_proto.NiuniuContinueWith) {
 	if player.InsideCow == 0 {
 		log.WithFields(logrus.Fields{
 			"player": player.Player,

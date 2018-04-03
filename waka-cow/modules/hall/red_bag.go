@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
+	"gopkg.in/ahmetb/go-linq.v3"
 
-	"github.com/liuhan907/waka/waka-cow/conf"
 	"github.com/liuhan907/waka/waka-cow/database"
 	"github.com/liuhan907/waka/waka-cow/modules/hall/tools/red"
 	"github.com/liuhan907/waka/waka-cow/proto"
@@ -22,63 +22,61 @@ type redBagPlayerT struct {
 	Player database.Player
 	Freeze database.Freeze
 	Grab   int32
+	GrabAt time.Time
+
 	Pay    int32
 	Charge int32
-	GrabAt time.Time
+
 	Lookup bool
 }
 
-func (player *redBagPlayerT) PbPlayer() *waka.Player {
-	return player.Bag.Hall.ToPlayer(player.Player)
-}
-
-func (player *redBagPlayerT) RedRedPaperBag3RedPlayer() *waka.RedRedPaperBag3_RedPlayer {
-	r := &waka.RedRedPaperBag3_RedPlayer{
-		Player:  player.Bag.Hall.ToPlayer(player.Player),
+func (player *redBagPlayerT) RedBagClearPlayerData() *cow_proto.RedBagClear_PlayerData {
+	return &cow_proto.RedBagClear_PlayerData{
+		Player:  int32(player.Player),
 		Grab:    player.Grab,
-		Pay:     player.Pay,
-		Charge:  player.Charge,
 		GrabAt:  player.GrabAt.Format("2006-01-02 15:04:05"),
 		Creator: player.Bag.Creator.Player == player.Player,
+		Pay:     player.Pay,
+		Charge:  player.Charge,
 	}
-	return r
+}
+
+type redBagCreatorT struct {
+	Bag    *redBagT
+	Player database.Player
+	Freeze database.Freeze
+	Cost   int32
+	Get    int32
+	Charge int32
+}
+
+func (player *redBagCreatorT) RedBagClearCreatorData() *cow_proto.RedBagClear_CreatorData {
+	return &cow_proto.RedBagClear_CreatorData{
+		Player: int32(player.Player),
+		Cost:   player.Cost,
+		Get:    player.Get,
+		Charge: player.Charge,
+	}
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
 
 type redBagPlayerMapT map[database.Player]*redBagPlayerT
 
-func (players redBagPlayerMapT) PbPlayer() []*waka.Player {
-	var d []*waka.Player
+func (players redBagPlayerMapT) RedBagClearPlayerData() (r []*cow_proto.RedBagClear_PlayerData) {
 	for _, player := range players {
-		d = append(d, player.PbPlayer())
+		r = append(r, player.RedBagClearPlayerData())
 	}
-	return d
-}
-
-func (players redBagPlayerMapT) RedRedPaperBag3RedPlayer() []*waka.RedRedPaperBag3_RedPlayer {
-	var d []*waka.RedRedPaperBag3_RedPlayer
-	for _, player := range players {
-		d = append(d, player.RedRedPaperBag3RedPlayer())
-	}
-	return d
+	return r
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
-
-type redBagCreatorT struct {
-	Player database.Player
-	Freeze database.Freeze
-	Get    int32
-	Cost   int32
-	Charge int32
-}
 
 type redBagT struct {
 	Hall *actorT
 
 	Id        int32
-	Option    *waka.RedRedPaperBagOption
+	Option    *cow_proto.RedBagOption
 	Creator   *redBagCreatorT
 	Players   redBagPlayerMapT
 	CreateAt  time.Time
@@ -90,40 +88,24 @@ type redBagT struct {
 	RemainMoney []int32
 }
 
-func (bag *redBagT) RedRedPaperBag1(player database.Player) *waka.RedRedPaperBag1 {
-	playerData := bag.Creator.Player.PlayerData()
-	_, myGrabbed := bag.Players[player]
-	return &waka.RedRedPaperBag1{
-		Id:           bag.Id,
-		Option:       bag.Option,
-		PlayerNumber: int32(len(bag.Players)),
-		Creator: &waka.RedRedPaperBag1_RedPlayer{
-			Nickname: playerData.Nickname,
-			Head:     playerData.Head,
-		},
-		MyGrabbed: myGrabbed,
-	}
-}
-
-func (bag *redBagT) RedRedPaperBag2() *waka.RedRedPaperBag2 {
-	return &waka.RedRedPaperBag2{
+func (bag *redBagT) RedBag() *cow_proto.RedBag {
+	r := &cow_proto.RedBag{
 		Id:      bag.Id,
 		Option:  bag.Option,
-		Players: bag.Players.PbPlayer(),
+		Creator: int32(bag.Creator.Player),
 	}
+	linq.From(bag.Players).SelectT(func(in linq.KeyValue) int32 {
+		return int32(in.Value.(*redBagPlayerT).Player)
+	}).ToSlice(&r.Players)
+	return r
 }
 
-func (bag *redBagT) RedRedPaperBag3() *waka.RedRedPaperBag3 {
-	return &waka.RedRedPaperBag3{
-		Id:     bag.Id,
-		Option: bag.Option,
-		Creator: &waka.RedRedPaperBag3_RedCreator{
-			Player: bag.Hall.ToPlayer(bag.Creator.Player),
-			Get:    bag.Creator.Get,
-			Cost:   bag.Creator.Cost,
-			Charge: bag.Creator.Charge,
-		},
-		Players:  bag.Players.RedRedPaperBag3RedPlayer(),
+func (bag *redBagT) RedBagClear() *cow_proto.RedBagClear {
+	return &cow_proto.RedBagClear{
+		Id:       bag.Id,
+		Option:   bag.Option,
+		Creator:  bag.Creator.RedBagClearCreatorData(),
+		Players:  bag.Players.RedBagClearPlayerData(),
 		UsedTime: int32(bag.FinallyAt.Sub(bag.CreateAt).Seconds()),
 	}
 }
@@ -159,15 +141,14 @@ func (bag *redBagT) RemainTime() int32 {
 
 type redBagMapT map[int32]*redBagT
 
-func (bags redBagMapT) RedRedPaperBag1(player database.Player) []*waka.RedRedPaperBag1 {
-	var d []*waka.RedRedPaperBag1
+func (bags redBagMapT) RedBag(player database.Player) (r []*cow_proto.RedBag) {
 	for _, bag := range bags {
 		if int32(len(bag.Players)) < bag.Option.Number ||
 			(bag.Players[player] != nil && !bag.Players[player].Lookup) {
-			d = append(d, bag.RedRedPaperBag1(player))
+			r = append(r, bag.RedBag())
 		}
 	}
-	return d
+	return r
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -176,10 +157,11 @@ func (bag *redBagT) Left(player database.Player) {}
 
 func (bag *redBagT) Recover(player database.Player) {
 	bag.Hall.sendRedGrabSuccess(player)
-	bag.Hall.sendRedUpdateRedPaperBag(player, bag)
+	bag.Hall.sendRedDeadline(player, bag.DeadAt.Unix())
+	bag.Hall.sendRedUpdateBag(player, bag)
 }
 
-func (bag *redBagT) Create(hall *actorT, id int32, option *waka.RedRedPaperBagOption, creator database.Player) {
+func (bag *redBagT) Create(hall *actorT, id int32, option *cow_proto.RedBagOption, creator database.Player) {
 	*bag = redBagT{
 		Hall:   hall,
 		Id:     id,
@@ -198,7 +180,7 @@ func (bag *redBagT) Create(hall *actorT, id int32, option *waka.RedRedPaperBagOp
 			"option":       option.String(),
 			"create_money": bag.CreateMoney(),
 		}).Debugln("create red but money not enough")
-		bag.Hall.sendRedCreateRedPaperBagFailed(creator, 1)
+		bag.Hall.sendRedCreateBagFailed(creator, 1)
 		return
 	}
 
@@ -209,7 +191,7 @@ func (bag *redBagT) Create(hall *actorT, id int32, option *waka.RedRedPaperBagOp
 			"option":  option.String(),
 			"err":     err,
 		}).Warnln("create red but split money failed")
-		bag.Hall.sendRedCreateRedPaperBagFailed(creator, 0)
+		bag.Hall.sendRedCreateBagFailed(creator, 0)
 		return
 	}
 
@@ -222,7 +204,7 @@ func (bag *redBagT) Create(hall *actorT, id int32, option *waka.RedRedPaperBagOp
 			"option":  option.String(),
 			"err":     err,
 		}).Warnln("create red but freeze money failed")
-		bag.Hall.sendRedCreateRedPaperBagFailed(creator, 0)
+		bag.Hall.sendRedCreateBagFailed(creator, 0)
 		return
 	}
 
@@ -230,12 +212,10 @@ func (bag *redBagT) Create(hall *actorT, id int32, option *waka.RedRedPaperBagOp
 
 	bag.Hall.redBags[bag.Id] = bag
 
-	bag.Hall.sendRedCreateRedPaperBagSuccess(creator, bag.Id)
+	bag.Hall.sendRedCreateBagSuccess(creator, bag.Id)
 	for _, player := range bag.Hall.players.SelectOnline() {
-		bag.Hall.sendRedUpdateRedPaperBagList(player.Player, bag.Hall.redBags)
+		bag.Hall.sendRedUpdateBagList(player.Player, bag.Hall.redBags)
 	}
-
-	bag.Hall.sendPlayerSecret(creator)
 
 	log.WithFields(logrus.Fields{
 		"creator": creator,
@@ -249,7 +229,7 @@ func (bag *redBagT) Grab(player *playerT) {
 	if being {
 		player.InsideRed = bag.Id
 		bag.Hall.sendRedGrabSuccess(player.Player)
-		bag.Hall.sendRedUpdateRedPaperBag(player.Player, bag)
+		bag.Hall.sendRedUpdateBag(player.Player, bag)
 	} else {
 		if len(bag.Players) >= int(bag.Option.Number) {
 			log.WithFields(logrus.Fields{
@@ -299,12 +279,11 @@ func (bag *redBagT) Grab(player *playerT) {
 		player.InsideRed = bag.Id
 
 		bag.Hall.sendRedGrabSuccess(player.Player)
-		bag.Hall.sendRedUpdateRedPaperBagForAll(bag)
+		bag.Hall.sendRedDeadline(player.Player, bag.DeadAt.Unix())
+		bag.Hall.sendRedUpdateBagForAll(bag)
 		for _, player := range bag.Hall.players.SelectOnline() {
-			bag.Hall.sendRedUpdateRedPaperBagList(player.Player, bag.Hall.redBags)
+			bag.Hall.sendRedUpdateBagList(player.Player, bag.Hall.redBags)
 		}
-
-		bag.Hall.sendPlayerSecret(player.Player)
 
 		if int32(len(bag.Players)) == bag.Option.Number {
 			bag.settle()
@@ -315,73 +294,73 @@ func (bag *redBagT) Grab(player *playerT) {
 func (bag *redBagT) settle() {
 	bag.FinallyAt = time.Now()
 
-	// 计算闲家的赔付
-	booms := make([]bool, len(bag.Option.Mantissa))
+	costs := &database.RedBagCost{
+		Creator: &database.RedCreatorCost{
+			Player: bag.Creator.Player,
+			Freeze: bag.Creator.Freeze,
+		},
+	}
 	for _, player := range bag.Players {
-		suffix := player.Grab % 10
-		for i, mantissa := range bag.Option.Mantissa {
-			if suffix == mantissa {
-				booms[i] = true
-				player.Pay = bag.LostMoney()
+		costs.Grabs = append(costs.Grabs, &database.RedGrabCost{
+			Player: player.Player,
+			Freeze: player.Freeze,
+			Number: player.Grab,
+		})
+	}
+	if linq.From(bag.Players).
+		GroupByT(func(in linq.KeyValue) int32 {
+			return in.Value.(*redBagPlayerT).Grab % 10
+		}, func(in linq.KeyValue) int32 {
+			return in.Value.(*redBagPlayerT).Grab % 10
+		}).
+		WhereT(func(in linq.Group) bool {
+			return linq.From(bag.Option.Mantissa).AnyWithT(func(any int32) bool {
+				return in.Key.(int32) == any
+			})
+		}).
+		Count() == len(bag.Option.Mantissa) {
+		for _, player := range bag.Players {
+			suffix := player.Grab % 10
+			if linq.From(bag.Option.Mantissa).AnyWithT(func(in int32) bool {
+				return suffix == in
+			}) {
+				costs.Pays = append(costs.Pays, &database.RedPayCost{
+					Player: player.Player,
+					Number: bag.LostMoney(),
+				})
 			}
 		}
 	}
-	boom := true
-	for _, v := range booms {
-		boom = boom && v
+
+	for _, player := range bag.Players {
+		player.Charge = int32(float64(player.Grab)*0.05 + 0.5)
 	}
-	if !boom {
-		for _, player := range bag.Players {
-			player.Pay = 0
+
+	for _, pay := range costs.Pays {
+		if player := bag.Players[pay.Player]; player != nil {
+			player.Pay = pay.Number
 		}
 	}
 
-	// 计算闲家的手续费
-	for _, player := range bag.Players {
-		player.Charge = int32(float64(player.Grab)*float64(float64(conf.Option.Hall.WaterRate)/100) + 0.5)
-	}
-
-	// 计算庄家获得的赔付
 	for _, player := range bag.Players {
 		if bag.Creator.Player != player.Player {
 			bag.Creator.Get += player.Pay
 		}
 	}
 
-	// 计算庄家的手续费
-	bag.Creator.Charge = int32(float64(bag.Creator.Get)*float64(float64(conf.Option.Hall.WaterRate)/100) + 0.5)
+	bag.Creator.Charge = int32(float64(bag.Creator.Get)*0.05 + 0.5)
 
-	// 计算庄家的支出
 	bag.Creator.Cost = bag.CreateMoney()
 
-	// 结算
-	cost := &database.RedBagCost{
-		Creator: &database.RedCreatorCost{
-			Player: bag.Creator.Player,
-			Get:    bag.Creator.Get,
-			Charge: bag.Creator.Charge,
-			Cost:   bag.Creator.Cost,
-			Freeze: bag.Creator.Freeze,
-		},
-	}
-	for _, player := range bag.Players {
-		cost.Players = append(cost.Players, &database.RedPlayerCost{
-			Player: player.Player,
-			Grab:   player.Grab,
-			Charge: player.Charge,
-			Pay:    player.Pay,
-			Freeze: player.Freeze,
-		})
-	}
-	if err := database.RedSettle(cost); err != nil {
+	if err := database.RedBagCostSettle(costs); err != nil {
 		log.WithFields(logrus.Fields{
-			"id":      bag.Id,
-			"option":  bag.Option.String(),
-			"creator": bag.Creator,
-			"err":     err,
+			"id":     bag.Id,
+			"option": bag.Option.String(),
+			"costs":  costs,
+			"err":    err,
 		}).Warnln("red settle failed")
 	} else {
-		err := database.RedAddHandWarHistory(bag.Creator.Player, bag.RedRedPaperBag3())
+		err := database.RedAddHandHistory(bag.Creator.Player, bag.RedBagClear())
 		if err != nil {
 			log.WithFields(logrus.Fields{
 				"err": err,
@@ -389,7 +368,7 @@ func (bag *redBagT) settle() {
 		}
 		for _, player := range bag.Players {
 			if bag.Creator.Player != player.Player {
-				err := database.RedAddGrabWarHistory(player.Player, bag.RedRedPaperBag3())
+				err := database.RedAddGrabHistory(player.Player, bag.RedBagClear())
 				if err != nil {
 					log.WithFields(logrus.Fields{
 						"err": err,
@@ -400,33 +379,23 @@ func (bag *redBagT) settle() {
 
 		bag.Settled = true
 
-		// 如果庄家没抢，发送通知
 		if bag.Players[bag.Creator.Player] == nil {
-			bag.Hall.sendRedHandsRedPaperBagSettled(bag.Creator.Player, bag)
+			bag.Hall.sendRedHandsBagSettled(bag.Creator.Player, bag)
 		}
 
 		for _, player := range bag.Hall.players.SelectOnline() {
-			bag.Hall.sendRedUpdateRedPaperBagList(player.Player, bag.Hall.redBags)
-		}
-
-		for _, player := range bag.Players {
-			bag.Hall.sendPlayerSecret(player.Player)
+			bag.Hall.sendRedUpdateBagList(player.Player, bag.Hall.redBags)
 		}
 
 		log.WithFields(logrus.Fields{
 			"id": bag.Id,
 		}).Debugln("settled")
 	}
+
 }
 
 func (bag *redBagT) Clock() {
-	if bag.RemainTime() > 0 && len(bag.Players) < int(bag.Option.Number) {
-		for _, player := range bag.Players {
-			if player := bag.Hall.players[player.Player]; player != nil && player.InsideRed == bag.Id {
-				bag.Hall.sendRedRedPaperBagCountdown(player.Player, bag.RemainTime())
-			}
-		}
-	} else if bag.RemainTime() <= 0 {
+	if bag.RemainTime() <= 0 {
 		delete(bag.Hall.redBags, bag.Id)
 
 		if !bag.Settled {
@@ -446,16 +415,12 @@ func (bag *redBagT) Clock() {
 					}).Warnln("recover freeze money failed")
 				}
 			}
-
-			for _, player := range bag.Players {
-				bag.Hall.sendPlayerSecret(player.Player)
-			}
 		}
 
 		for _, player := range bag.Players {
 			if player := bag.Hall.players[player.Player]; player != nil {
 				if player.InsideRed == bag.Id {
-					bag.Hall.sendRedRedPaperBagDestory(player.Player, bag.Id)
+					bag.Hall.sendRedBagDestoried(player.Player, bag.Id)
 				}
 				player.InsideRed = 0
 			}

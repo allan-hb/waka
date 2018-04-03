@@ -10,7 +10,7 @@ import (
 	"github.com/liuhan907/waka/waka-cow/proto"
 )
 
-func (my *actorT) setPlayerExt(ev *waka.SetPlayerExtRequest, respond func(proto.Message, error)) {
+func (my *actorT) setPlayerExt(ev *cow_proto.SetPlayerExtRequest, respond func(proto.Message, error)) {
 	my.log.WithFields(logrus.Fields{
 		"player": my.player,
 		"name":   ev.GetName(),
@@ -27,17 +27,17 @@ func (my *actorT) setPlayerExt(ev *waka.SetPlayerExtRequest, respond func(proto.
 
 		respond(nil, err)
 	} else {
-		respond(&waka.SetPlayerExtResponse{}, nil)
+		respond(&cow_proto.SetPlayerExtResponse{}, nil)
 	}
 }
 
-func (my *actorT) setPlayerSupervisor(ev *waka.SetPlayerAgentRequest, respond func(proto.Message, error)) {
+func (my *actorT) setPlayerSupervisor(ev *cow_proto.SetPlayerSupervisorRequest, respond func(proto.Message, error)) {
 	my.log.WithFields(logrus.Fields{
 		"player":     my.player,
 		"supervisor": ev.GetPlayerId(),
 	}).Debugln("set player supervisor")
 
-	_, being, err := database.QueryPlayerByRef(database.Player(ev.GetPlayerId()))
+	_, being, err := database.QueryPlayerByPlayer(database.Player(ev.GetPlayerId()))
 	if err != nil {
 		my.log.WithFields(logrus.Fields{
 			"player":     my.player,
@@ -65,7 +65,7 @@ func (my *actorT) setPlayerSupervisor(ev *waka.SetPlayerAgentRequest, respond fu
 
 				respond(nil, err)
 			} else {
-				respond(&waka.SetPlayerAgentResponse{}, nil)
+				respond(&cow_proto.SetPlayerSupervisorResponse{}, nil)
 			}
 		}
 	}

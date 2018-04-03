@@ -4,8 +4,8 @@ import (
 	"errors"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/liuhan907/waka/waka-cow/proto"
 
+	"github.com/liuhan907/waka/waka-cow/proto"
 	"github.com/liuhan907/waka/waka/modules/session/session_message"
 	"github.com/liuhan907/waka/waka/modules/supervisor/supervisor_message"
 )
@@ -35,9 +35,9 @@ func (my *actorT) closed(ev *session_message.Closed) {
 func (my *actorT) transport(ev *session_message.Transport) {
 	if my.player == 0 {
 		switch evd := ev.Payload.(type) {
-		case *waka.WechatLogin:
+		case *cow_proto.WechatLogin:
 			my.wechatLogin(evd)
-		case *waka.TokenLogin:
+		case *cow_proto.TokenLogin:
 			my.tokenLogin(evd)
 		}
 	} else {
@@ -52,9 +52,9 @@ func (my *actorT) futureRequest(ev *session_message.FutureRequest) {
 		ev.Respond(nil, errors.New("unauthorized"))
 	} else {
 		switch evd := ev.Payload.(type) {
-		case *waka.SetPlayerExtRequest:
+		case *cow_proto.SetPlayerExtRequest:
 			my.setPlayerExt(evd, ev.Respond)
-		case *waka.SetPlayerAgentRequest:
+		case *cow_proto.SetPlayerSupervisorRequest:
 			my.setPlayerSupervisor(evd, ev.Respond)
 		default:
 			if my.hall != nil {

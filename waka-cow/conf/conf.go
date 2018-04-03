@@ -7,9 +7,12 @@ import (
 	"github.com/BurntSushi/toml"
 )
 
+type Mode struct {
+	Mode string `toml:"mode"`
+}
+
 type Logger struct {
-	LogLevel uint32 `toml:"log_level"`
-	LogHeart bool   `toml:"log_heart"`
+	Level uint32 `toml:"level"`
 }
 
 type Install struct {
@@ -24,29 +27,23 @@ type Database struct {
 	Name     string `toml:"name"`
 }
 
-type Gateway struct {
-	Listen4 string `toml:"listen4"`
-}
-
-type Backend struct {
-	Listen4 string `toml:"listen4"`
-	Http    string `toml:"http"`
+type Listen struct {
+	Gateway string `toml:"gateway"`
+	Backend string `toml:"backend"`
 }
 
 type Hall struct {
-	Salt            string `toml:"salt"`
-	WaterRate       int32  `toml:"water_rate"`
-	RegisterMoney   int32  `toml:"register_money"`
-	BindMoney       int32  `toml:"bind_money"`
-	MinPlayerNumber int32  `toml:"min_player_number"`
+	Salt          string `toml:"salt"`
+	RegisterMoney int32  `toml:"register_money"`
+	BindMoney     int32  `toml:"bind_money"`
 }
 
 type T struct {
+	Mode     Mode     `toml:"mode"`
 	Log      Logger   `toml:"log"`
 	Install  Install  `toml:"install"`
 	Database Database `toml:"database"`
-	Gateway  Gateway  `toml:"gateway"`
-	Backend  Backend  `toml:"backend"`
+	Gateway  Listen   `toml:"listen"`
 	Hall     Hall     `toml:"hall"`
 }
 

@@ -1,10 +1,11 @@
 package hall
 
 import (
+	"github.com/sirupsen/logrus"
+
 	"github.com/liuhan907/waka/waka-cow/database"
 	"github.com/liuhan907/waka/waka-cow/modules/hall/tools/gomoku"
-	waka "github.com/liuhan907/waka/waka-cow/proto"
-	"github.com/sirupsen/logrus"
+	"github.com/liuhan907/waka/waka-cow/proto"
 )
 
 const (
@@ -42,16 +43,16 @@ type gomokuRoomT struct {
 	Tick func()
 }
 
-func (r *gomokuRoomT) GomokuRoom() *waka.GomokuRoom {
-	pb := &waka.GomokuRoom{
+func (r *gomokuRoomT) GomokuRoom() *cow_proto.GomokuRoom {
+	pb := &cow_proto.GomokuRoom{
 		Id:   r.Id,
 		Cost: r.Cost,
 	}
 	if r.Creator != nil {
-		pb.Creator = r.Hall.ToPlayer(r.Creator.Player)
+		pb.Creator = int32(r.Creator.Player)
 	}
 	if r.Student != nil {
-		pb.Student = r.Hall.ToPlayer(r.Student.Player)
+		pb.Student = int32(r.Student.Player)
 	}
 	return pb
 }
@@ -62,11 +63,8 @@ type gomokuRoomMapT map[int32]*gomokuRoomT
 
 func (r *gomokuRoomT) Left(player *playerT) {
 	if !r.Gaming {
-		if player.Player == r.Creator.Player {
-		} else {
+		if player.Player != r.Creator.Player {
 			player.InsideGomoku = 0
-			r.Hall.sendGomokuLeft(player.Player)
-
 			r.Student = nil
 		}
 	}
@@ -105,7 +103,7 @@ func (r *gomokuRoomT) Create(hall *actorT, player *playerT, id int32) {
 
 	hall.gomokuRooms[id] = r
 
-	hall.sendGomokuRoomCreated(player.Player, id)
+	hall.sendGomokuCreateRoomSuccess(player.Player, id)
 	hall.sendGomokuUpdateRoomForAll(r)
 }
 
@@ -119,7 +117,7 @@ func (r *gomokuRoomT) Join(player *playerT) {
 
 	player.InsideGomoku = r.Id
 
-	r.Hall.sendGomokuRoomEntered(player.Player)
+	r.Hall.sendGomokuJoinRoomSuccess(player.Player)
 	r.Hall.sendGomokuUpdateRoomForAll(r)
 }
 
@@ -130,7 +128,7 @@ func (r *gomokuRoomT) SetCost(player *playerT, cost int32) {
 
 func (r *gomokuRoomT) Leave(player *playerT) {
 	if player.Player == r.Creator.Player {
-		r.Hall.sendGomokuLeftForAll(r)
+		r.Hall.sendGomokuLeftForAll(r, 1)
 		delete(r.Hall.gomokuRooms, r.Id)
 		r.Hall.gomokuNumberPool.Return(r.Id)
 		if r.Creator != nil {
@@ -145,15 +143,14 @@ func (r *gomokuRoomT) Leave(player *playerT) {
 		}
 	} else {
 		player.InsideGomoku = 0
-		r.Hall.sendGomokuLeft(player.Player)
-
 		r.Student = nil
+		r.Hall.sendGomokuLeft(player.Player, 2)
 		r.Hall.sendGomokuUpdateRoomForAll(r)
 	}
 }
 
 func (r *gomokuRoomT) Dismiss(player *playerT) {
-	r.Hall.sendGomokuLeftByDismissForAll(r)
+	r.Hall.sendGomokuLeftForAll(r, 1)
 	delete(r.Hall.gomokuRooms, r.Id)
 	r.Hall.gomokuNumberPool.Return(r.Id)
 	if r.Creator != nil {
@@ -240,10 +237,13 @@ func (r *gomokuRoomT) loopPlay() bool {
 	r.ThisPlayer.Play = false
 
 	r.Loop = r.loopPlayContinue
-	r.Tick = buildTick(
-		&r.ThisPlayer.RemainTime,
-		func(number int32) {
-			r.Hall.sendGomokuUpdatePlayCountdownForAll(r, number)
+	r.Tick = buildTickAfter(
+		r.ThisPlayer.RemainTime,
+		func(deadline int64) {
+			r.Hall.sendGomokuUpdatePlayDeadlineForAll(r, deadline)
+		},
+		func(deadline int64) {
+			r.ThisPlayer.RemainTime--
 		},
 		func() {
 			r.Tick = nil
@@ -332,9 +332,6 @@ func (r *gomokuRoomT) loopSettle() bool {
 	if player := r.Hall.players[r.AnotherPlayer.Player]; player != nil {
 		player.InsideGomoku = 0
 	}
-
-	r.Hall.sendPlayerSecret(r.ThisPlayer.Player)
-	r.Hall.sendPlayerSecret(r.AnotherPlayer.Player)
 
 	return false
 }

@@ -1,19 +1,19 @@
 package hall
 
-func buildTick(number *int32, sender func(int32), completed func(), loop func()) func() {
+import "time"
+
+func buildTickDeadline(deadline int64, sender func(int64), completed func(), loop func()) func() {
 	return func() {
-		sender(*number)
-		if *number == 0 {
+		sender(deadline)
+		if time.Now().Unix() >= deadline {
 			completed()
 			loop()
-		} else {
-			*number--
 		}
 	}
 }
 
-func buildTickNumber(number int32, sender func(int32), completed func(), loop func()) func() {
-	val := new(int32)
-	*val = number
-	return buildTick(val, sender, completed, loop)
+func buildTickAfter(after int32, starter func(int64), sender func(int64), completed func(), loop func()) func() {
+	deadline := time.Now().Unix() + int64(after)
+	starter(deadline)
+	return buildTickDeadline(deadline, sender, completed, loop)
 }

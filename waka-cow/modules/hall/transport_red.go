@@ -3,15 +3,15 @@ package hall
 import (
 	"sync/atomic"
 
-	"github.com/liuhan907/waka/waka-cow/proto"
+	waka "github.com/liuhan907/waka/waka-cow/proto"
 	"github.com/liuhan907/waka/waka/modules/supervisor/supervisor_message"
 	"github.com/sirupsen/logrus"
 )
 
 func (my *actorT) playerTransportedRed(player *playerT, ev *supervisor_message.PlayerTransported) bool {
 	switch evd := ev.Payload.(type) {
-	case *waka.RedCreateRedPaperBag:
-		my.RedCreateRedPaperBag(player, evd)
+	case *waka.RedCreateBag:
+		my.RedCreateBag(player, evd)
 	case *waka.RedGrab:
 		my.RedGrab(player, evd)
 	case *waka.RedLeave:
@@ -22,7 +22,7 @@ func (my *actorT) playerTransportedRed(player *playerT, ev *supervisor_message.P
 	return true
 }
 
-func (my *actorT) RedCreateRedPaperBag(player *playerT, ev *waka.RedCreateRedPaperBag) {
+func (my *actorT) RedCreateBag(player *playerT, ev *waka.RedCreateBag) {
 	ev.GetOption().Money *= 100
 
 	if ev.GetOption().GetNumber() != 7 && ev.GetOption().GetNumber() != 10 {
@@ -30,7 +30,7 @@ func (my *actorT) RedCreateRedPaperBag(player *playerT, ev *waka.RedCreateRedPap
 			"player": player.Player,
 			"option": ev.GetOption().String(),
 		}).Warnln("create red but option illegal")
-		my.sendRedCreateRedPaperBagFailed(player.Player, 0)
+		my.sendRedCreateBagFailed(player.Player, 0)
 		return
 	}
 
@@ -39,7 +39,7 @@ func (my *actorT) RedCreateRedPaperBag(player *playerT, ev *waka.RedCreateRedPap
 			"player": player.Player,
 			"option": ev.GetOption().String(),
 		}).Warnln("create red but option illegal")
-		my.sendRedCreateRedPaperBagFailed(player.Player, 0)
+		my.sendRedCreateBagFailed(player.Player, 0)
 		return
 	}
 
@@ -48,7 +48,7 @@ func (my *actorT) RedCreateRedPaperBag(player *playerT, ev *waka.RedCreateRedPap
 			"player": player.Player,
 			"option": ev.GetOption().String(),
 		}).Warnln("create red but option illegal")
-		my.sendRedCreateRedPaperBagFailed(player.Player, 0)
+		my.sendRedCreateBagFailed(player.Player, 0)
 		return
 	}
 

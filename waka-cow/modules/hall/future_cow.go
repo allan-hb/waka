@@ -12,14 +12,12 @@ import (
 
 func (my *actorT) playerFutureRequestedCow(player *playerT, ev *supervisor_message.PlayerFutureRequested) bool {
 	switch evd := ev.Payload.(type) {
-	case *waka.NiuniuQueryPayForAnotherRoomListRequest:
+	case *cow_proto.NiuniuQueryPayForAnotherRoomListRequest:
 		my.NiuniuQueryPayForAnotherRoomListRequest(player, evd, ev.Respond)
-	case *waka.NiuniuQueryAgentRoomCountRequest:
-		my.NiuniuQueryAgentRoomCountRequest(player, evd, ev.Respond)
-	case *waka.NiuniuQueryAgentRoomListRequest:
-		my.NiuniuQueryAgentRoomListRequest(player, evd, ev.Respond)
-	case *waka.NiuniuQueryRecordRequest:
-		my.NiuniuQueryRecordRequest(player, evd, ev.Respond)
+	case *cow_proto.NiuniuQueryFlowingRoomListRequest:
+		my.NiuniuQueryFlowingRoomListRequest(player, evd, ev.Respond)
+	case *cow_proto.NiuniuQueryHistoryRequest:
+		my.NiuniuQueryHistoryRequest(player, evd, ev.Respond)
 	default:
 		return false
 	}
@@ -27,66 +25,46 @@ func (my *actorT) playerFutureRequestedCow(player *playerT, ev *supervisor_messa
 }
 
 func (my *actorT) NiuniuQueryPayForAnotherRoomListRequest(player *playerT,
-	ev *waka.NiuniuQueryPayForAnotherRoomListRequest,
+	ev *cow_proto.NiuniuQueryPayForAnotherRoomListRequest,
 	respond func(proto.Message, error)) {
 
 	rooms := my.cowRooms.
 		WherePayForAnother().
 		WhereCreator(player.Player)
 
-	pb := rooms.NiuniuRoomData1()
+	pb := rooms.NiuniuRoomData()
 	sort.Slice(pb, func(i, j int) bool {
-		return pb[i].Id < pb[j].Id
+		return pb[i].GetRoomId() < pb[j].GetRoomId()
 	})
 
-	respond(&waka.NiuniuQueryPayForAnotherRoomListResponse{pb}, nil)
+	respond(&cow_proto.NiuniuQueryPayForAnotherRoomListResponse{pb}, nil)
 }
 
-func (my *actorT) NiuniuQueryAgentRoomCountRequest(player *playerT,
-	ev *waka.NiuniuQueryAgentRoomCountRequest,
+func (my *actorT) NiuniuQueryFlowingRoomListRequest(player *playerT,
+	ev *cow_proto.NiuniuQueryFlowingRoomListRequest,
 	respond func(proto.Message, error)) {
 
-	rooms := my.cowRooms.WhereSupervisor()
-	if ev.GetPlayerId() != 0 {
-		rooms.WhereCreator(database.Player(ev.GetPlayerId()))
-	}
+	rooms := my.cowRooms.
+		WhereFlowing().
+		WhereReady()
 
-	respond(&waka.NiuniuQueryAgentRoomCountResponse{int32(len(rooms))}, nil)
-}
-
-func (my *actorT) NiuniuQueryAgentRoomListRequest(player *playerT,
-	ev *waka.NiuniuQueryAgentRoomListRequest,
-	respond func(proto.Message, error)) {
-
-	rooms := my.cowRooms.WhereSupervisor()
-	if ev.GetPlayerId() != 0 {
-		rooms.WhereCreator(database.Player(ev.GetPlayerId()))
-	}
-
-	pb := rooms.NiuniuRoomData1()
+	pb := rooms.NiuniuRoomData()
 	sort.Slice(pb, func(i, j int) bool {
-		return pb[i].Id < pb[j].Id
+		return pb[i].GetRoomId() < pb[j].GetRoomId()
 	})
 
-	if ev.Range != nil {
-		if ev.Range.Start < int32(len(pb)) &&
-			ev.Range.Start+ev.Range.Number <= int32(len(pb)) {
-			pb = pb[int(ev.Range.Start):int(ev.Range.Start+ev.Range.Number)]
-		}
-	}
-
-	respond(&waka.NiuniuQueryAgentRoomListResponse{pb}, nil)
+	respond(&cow_proto.NiuniuQueryFlowingRoomListResponse{pb}, nil)
 }
 
-func (my *actorT) NiuniuQueryRecordRequest(player *playerT,
-	ev *waka.NiuniuQueryRecordRequest,
+func (my *actorT) NiuniuQueryHistoryRequest(player *playerT,
+	ev *cow_proto.NiuniuQueryHistoryRequest,
 	respond func(proto.Message, error)) {
 
-	records, err := database.CowQueryWarHistory(player.Player, 20)
+	records, err := database.CowQueryHistory(player.Player, 20)
 	if err != nil {
 		respond(nil, err)
 		return
 	}
 
-	respond(&waka.NiuniuQueryRecordResponse{records}, nil)
+	respond(&cow_proto.NiuniuQueryHistoryResponse{records}, nil)
 }

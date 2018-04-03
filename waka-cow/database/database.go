@@ -1,15 +1,12 @@
 package database
 
 import (
-	"database/sql/driver"
-	"encoding/json"
 	"fmt"
 	"os"
 	"time"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
 	"github.com/liuhan907/waka/waka-cow/conf"
@@ -36,19 +33,15 @@ func init() {
 	mysql.LogMode(true)
 
 	tables := []interface{}{
+		new(Configuration),
 		new(PlayerData),
 		new(FreezeData),
-		new(SupervisorData),
-		new(SupervisorRoomBlacklist),
-		new(CowRoomPurchaseHistory),
-		new(CowGoldRoomPurchaseHistory),
-		new(GomokuPurchaseHistory),
-		new(BonusHistory),
-		new(CowWarHistory),
-		new(GomokuWarHistory),
-		new(Lever28WarHistory),
-		new(RedWarHistory),
-		new(Configuration),
+		new(TransactionData),
+
+		new(CowHistory),
+		new(GomokuHistory),
+		new(Lever28History),
+		new(RedHistory),
 	}
 	if conf.Option.Install.Reset {
 		if err := mysql.DropTableIfExists(tables...).Error; err != nil {
@@ -60,53 +53,67 @@ func init() {
 		if err := mysql.Exec("alter table players AUTO_INCREMENT = 100000;").Error; err != nil {
 			log.Panic(err)
 		}
-		if err := mysql.Create(&PlayerData{
-			Nickname:  "__system",
-			CreatedAt: time.Now(),
-		}).Error; err != nil {
-			log.Panic(err)
-		}
 	}
 	if conf.Option.Install.Update {
 		if err := mysql.AutoMigrate(tables...).Error; err != nil {
 			log.Panic(err)
 		}
+	}
+
+	if conf.Option.Install.Reset || conf.Option.Install.Update {
 		systemPlayerCount := 0
-		if err := mysql.Model(new(PlayerData)).Where("ref = ?", 100000).Count(&systemPlayerCount).Error; err != nil {
+		if err := mysql.Model(new(PlayerData)).Where("id = ?", DefaultSupervisor).Count(&systemPlayerCount).Error; err != nil {
 			log.Panic(err)
 		}
 		if systemPlayerCount == 0 {
 			if err := mysql.Create(&PlayerData{
-				Ref:       100000,
-				Nickname:  "__system",
-				Vip:       time.Now(),
-				CreatedAt: time.Now(),
+				Id:            DefaultSupervisor,
+				Nickname:      "__system",
+				CreatedAt:     time.Now(),
+				Vip:           time.Now(),
+				Supervisor:    DefaultSupervisor,
+				VictoryWeight: DefaultVictoryWeight,
 			}).Error; err != nil {
 				log.Panic(err)
 			}
 		}
 	}
 
-	recoverFreezeMoneyAfterLast()
 	RefreshConfiguration()
-	RefreshSupervisorRoomBlacklist()
-	QuerySupervisorList()
+
+	recoverFreezeMoneyAfterLast()
 }
 
-type Int32SliceSQLField []int32
+func recoverFreezeMoneyAfterLast() {
+	var freezes []*FreezeData
 
-func (i32 Int32SliceSQLField) Value() (driver.Value, error) {
-	bytes, err := json.Marshal(i32)
-	return string(bytes), err
-}
+	ts := mysql.Begin()
 
-func (i32 *Int32SliceSQLField) Scan(input interface{}) error {
-	switch value := input.(type) {
-	case string:
-		return json.Unmarshal([]byte(value), i32)
-	case []byte:
-		return json.Unmarshal(value, i32)
-	default:
-		return errors.New("not supported")
+	if err := ts.Where("recovered = ?", false).Find(&freezes).Error; err != nil {
+		log.WithFields(logrus.Fields{
+			"err": err,
+		}).Warnln("query last freeze money records failed")
+		ts.Rollback()
+		return
 	}
+
+	for _, freeze := range freezes {
+		player, number, err := recoverFreezeMoney(ts, freeze.Id)
+		if err != nil {
+			log.WithFields(logrus.Fields{
+				"freeze": freeze.Id,
+				"player": freeze.Player,
+				"number": freeze.Number,
+				"err":    err,
+			}).Warnln("recover freeze money failed")
+			ts.Rollback()
+			return
+		}
+		log.WithFields(logrus.Fields{
+			"player": player,
+			"number": number,
+		}).Warnln("found freeze and recovered")
+	}
+
+	ts.Commit()
 }

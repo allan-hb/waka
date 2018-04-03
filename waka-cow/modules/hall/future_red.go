@@ -5,15 +5,15 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/liuhan907/waka/waka-cow/database"
-	"github.com/liuhan907/waka/waka-cow/proto"
+	waka "github.com/liuhan907/waka/waka-cow/proto"
 	"github.com/liuhan907/waka/waka/modules/supervisor/supervisor_message"
 	"github.com/sirupsen/logrus"
 )
 
 func (my *actorT) playerFutureRequestedRed(player *playerT, ev *supervisor_message.PlayerFutureRequested) bool {
 	switch evd := ev.Payload.(type) {
-	case *waka.RedGetRedPaperBagResultRequest:
-		my.RedGetRedPaperBagResultRequest(player, evd, ev.Respond)
+	case *waka.RedGetBagClearRequest:
+		my.RedGetBagClearRequest(player, evd, ev.Respond)
 	case *waka.RedGetHistoryRequest:
 		my.RedGetHistoryRequest(player, evd, ev.Respond)
 	default:
@@ -22,8 +22,8 @@ func (my *actorT) playerFutureRequestedRed(player *playerT, ev *supervisor_messa
 	return true
 }
 
-func (my *actorT) RedGetRedPaperBagResultRequest(player *playerT,
-	ev *waka.RedGetRedPaperBagResultRequest,
+func (my *actorT) RedGetBagClearRequest(player *playerT,
+	ev *waka.RedGetBagClearRequest,
 	respond func(proto.Message, error)) {
 	if player.InsideRed == 0 {
 		log.WithFields(logrus.Fields{
@@ -58,16 +58,16 @@ func (my *actorT) RedGetRedPaperBagResultRequest(player *playerT,
 	redPlayer.Lookup = true
 	player.InsideRed = 0
 
-	respond(&waka.RedGetRedPaperBagResultResponse{bag.RedRedPaperBag3()}, nil)
+	respond(&waka.RedGetBagClearResponse{bag.RedBagClear()}, nil)
 
-	my.sendRedUpdateRedPaperBagList(player.Player, my.redBags)
+	my.sendRedUpdateBagList(player.Player, my.redBags)
 }
 
 func (my *actorT) RedGetHistoryRequest(player *playerT,
 	ev *waka.RedGetHistoryRequest,
 	respond func(proto.Message, error)) {
 
-	grabs, err := database.RedQueryGrabWarHistory(player.Player, 10)
+	grabs, err := database.RedQueryGrabHistory(player.Player, 10)
 	if err != nil {
 		log.WithFields(logrus.Fields{
 			"err": err,
@@ -76,7 +76,7 @@ func (my *actorT) RedGetHistoryRequest(player *playerT,
 		return
 	}
 
-	hands, err := database.RedQueryHandWarHistory(player.Player, 10)
+	hands, err := database.RedQueryHandHistory(player.Player, 10)
 	if err != nil {
 		log.WithFields(logrus.Fields{
 			"err": err,

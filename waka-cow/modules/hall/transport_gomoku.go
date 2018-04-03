@@ -8,21 +8,21 @@ import (
 
 func (my *actorT) playerTransportedGomoku(player *playerT, ev *supervisor_message.PlayerTransported) bool {
 	switch evd := ev.Payload.(type) {
-	case *waka.GomokuCreateRoom:
+	case *cow_proto.GomokuCreateRoom:
 		my.GomokuCreateRoom(player, evd)
-	case *waka.GomokuJoinRoom:
+	case *cow_proto.GomokuJoinRoom:
 		my.GomokuJoinRoom(player, evd)
-	case *waka.GomokuSetCost:
+	case *cow_proto.GomokuSetCost:
 		my.GomokuSetCost(player, evd)
-	case *waka.GomokuLeave:
+	case *cow_proto.GomokuLeave:
 		my.GomokuLeave(player, evd)
-	case *waka.GomokuDismiss:
+	case *cow_proto.GomokuDismiss:
 		my.GomokuDismiss(player, evd)
-	case *waka.GomokuStart:
+	case *cow_proto.GomokuStart:
 		my.GomokuStart(player, evd)
-	case *waka.GomokuPlay:
+	case *cow_proto.GomokuPlay:
 		my.GomokuPlay(player, evd)
-	case *waka.GomokuSurrender:
+	case *cow_proto.GomokuSurrender:
 		my.GomokuSurrender(player, evd)
 	default:
 		return false
@@ -30,7 +30,7 @@ func (my *actorT) playerTransportedGomoku(player *playerT, ev *supervisor_messag
 	return true
 }
 
-func (my *actorT) GomokuCreateRoom(player *playerT, ev *waka.GomokuCreateRoom) {
+func (my *actorT) GomokuCreateRoom(player *playerT, ev *cow_proto.GomokuCreateRoom) {
 	if player.InsideGomoku != 0 {
 		log.WithFields(logrus.Fields{
 			"player": player.Player,
@@ -52,7 +52,7 @@ func (my *actorT) GomokuCreateRoom(player *playerT, ev *waka.GomokuCreateRoom) {
 	room.Create(my, player, id)
 }
 
-func (my *actorT) GomokuJoinRoom(player *playerT, ev *waka.GomokuJoinRoom) {
+func (my *actorT) GomokuJoinRoom(player *playerT, ev *cow_proto.GomokuJoinRoom) {
 	if player.InsideGomoku != 0 {
 		log.WithFields(logrus.Fields{
 			"player": player.Player,
@@ -111,7 +111,7 @@ func (my *actorT) GomokuJoinRoom(player *playerT, ev *waka.GomokuJoinRoom) {
 	room.Join(player)
 }
 
-func (my *actorT) GomokuSetCost(player *playerT, ev *waka.GomokuSetCost) {
+func (my *actorT) GomokuSetCost(player *playerT, ev *cow_proto.GomokuSetCost) {
 	if player.InsideGomoku == 0 {
 		log.WithFields(logrus.Fields{
 			"player": player.Player,
@@ -165,7 +165,7 @@ func (my *actorT) GomokuSetCost(player *playerT, ev *waka.GomokuSetCost) {
 	room.SetCost(player, ev.Cost)
 }
 
-func (my *actorT) GomokuLeave(player *playerT, ev *waka.GomokuLeave) {
+func (my *actorT) GomokuLeave(player *playerT, ev *cow_proto.GomokuLeave) {
 	if player.InsideGomoku == 0 {
 		log.WithFields(logrus.Fields{
 			"player": player.Player,
@@ -190,7 +190,7 @@ func (my *actorT) GomokuLeave(player *playerT, ev *waka.GomokuLeave) {
 	room.Leave(player)
 }
 
-func (my *actorT) GomokuDismiss(player *playerT, ev *waka.GomokuDismiss) {
+func (my *actorT) GomokuDismiss(player *playerT, ev *cow_proto.GomokuDismiss) {
 	if player.InsideGomoku == 0 {
 		log.WithFields(logrus.Fields{
 			"player": player.Player,
@@ -211,7 +211,7 @@ func (my *actorT) GomokuDismiss(player *playerT, ev *waka.GomokuDismiss) {
 	room.Dismiss(player)
 }
 
-func (my *actorT) GomokuStart(player *playerT, ev *waka.GomokuStart) {
+func (my *actorT) GomokuStart(player *playerT, ev *cow_proto.GomokuStart) {
 	if player.InsideGomoku == 0 {
 		log.WithFields(logrus.Fields{
 			"player": player.Player,
@@ -240,7 +240,7 @@ func (my *actorT) GomokuStart(player *playerT, ev *waka.GomokuStart) {
 	room.Start(player)
 }
 
-func (my *actorT) GomokuPlay(player *playerT, ev *waka.GomokuPlay) {
+func (my *actorT) GomokuPlay(player *playerT, ev *cow_proto.GomokuPlay) {
 	if player.InsideGomoku == 0 {
 		log.WithFields(logrus.Fields{
 			"player": player.Player,
@@ -265,7 +265,7 @@ func (my *actorT) GomokuPlay(player *playerT, ev *waka.GomokuPlay) {
 	room.Play(player, ev.GetX(), ev.GetY())
 }
 
-func (my *actorT) GomokuSurrender(player *playerT, ev *waka.GomokuSurrender) {
+func (my *actorT) GomokuSurrender(player *playerT, ev *cow_proto.GomokuSurrender) {
 	if player.InsideGomoku == 0 {
 		log.WithFields(logrus.Fields{
 			"player": player.Player,

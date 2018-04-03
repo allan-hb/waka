@@ -2,13 +2,13 @@ package hall
 
 func (r *supervisorRoomT) buildStart() {
 	if r.tick == nil && len(r.Players) >= 2 {
-		r.tick = buildTickNumber(
+		r.tick = buildTickAfter(
 			5,
-			func(number int32) {
-				if !r.Gaming && len(r.Players) >= 2 {
-					r.Hall.sendNiuniuCountdownForAll(r, number)
-				} else {
-					r.Hall.sendNiuniuCountdownForAll(r, 0)
+			func(deadline int64) {
+				r.Hall.sendNiuniuDeadlineForAll(r, deadline)
+			},
+			func(number int64) {
+				if r.Gaming || len(r.Players) < 2 {
 					r.tick = nil
 				}
 			},
@@ -17,7 +17,6 @@ func (r *supervisorRoomT) buildStart() {
 				if !r.Gaming && len(r.Players) >= 2 {
 					r.loop = r.loopStart
 				} else {
-
 				}
 			},
 			r.Loop,

@@ -13,15 +13,18 @@ message Welcome {
     // 客服信息
     repeated Customer customers = 1;
     // 附加配置
-    // ios         ios 审核中 [true, false]
+    // ios          ios 审核中 [true, false]
+    // ver          版本号 [x.x.x]
     map<string, string> exts = 2;
+    // 链接
+    // recharge                 充值链接
+    // ios_download             iOS 下载链接
+    // android_download         Android 下载链接
+    map<string, string> urls = 3;
     // 公告
     // gapp         健康游戏公告
     // cow_roll     牛牛滚动公告
-    map<string, string> notices = 3;
-    // 链接
-    // recharge             充值链接
-    map<string, string> urls = 4;
+    map<string, string> notices = 4;
 }
 
 // @comments 微信登录请求
@@ -74,23 +77,23 @@ message SetPlayerExtRequest {
 // @comments 设置玩家附加信息结果
 message SetPlayerExtResponse {}
 
-// @comments 设置上级
-// @rpc response=SetSupervisorResponse
-message SetSupervisorRequest {
-    // 上级玩家 ID
+// @comments 设置上级代理
+// @rpc response=SetPlayerSupervisorResponse
+message SetPlayerSupervisorRequest {
+    // 上级代理 ID
     int32 player_id = 1;
 }
 
-// @comments 设置上级结果
-message SetSupervisorResponse {}
+// @comments 设置上级代理结果
+message SetPlayerSupervisorResponse {}
 
 // --------------------------------------↑个人消息↑-----------------------------------------
 
 // @comment 玩家公开信息
-// @receive
 message Player {
     // 玩家 ID
     int32 id = 1;
+
     // 昵称
     string nickname = 2;
     // 头像
@@ -109,45 +112,89 @@ message Player {
 }
 
 // @comments 玩家
-// @receive
 message PlayerSecret {
     // 玩家主键
     int32 id = 1;
-    // 微信UID
-    string wechat_uid = 2;
-    // 昵称
-    string nickname = 3;
-    // 头像
-    string head = 4;
+    // 注册时间
+    string created_at = 2;
 
-    // 微信号
-    string wechat = 5;
-    // 身份证
-    string idcard = 6;
-    // 姓名
-    string name = 7;
+    // 微信UID
+    string wechat_uid = 3;
+    // 昵称
+    string nickname = 4;
+    // 头像
+    string head = 5;
 
     // 金币
-    int32 money = 8;
+    int32 money = 6;
     // VIP
-    int64 vip = 9;
+    int64 vip = 7;
+
+    // 微信号
+    string wechat = 8;
+    // 身份证
+    string idcard = 9;
+    // 姓名
+    string name = 10;
 
     // 上级代理
-    int32 supervisor = 10;
-
-    // 注册时间
-    string created_at = 11;
+    int32 supervisor = 11;
 
     // 登录IP
     string ip = 12;
 }
 
-// @comments 已经进入大厅
-// @receive
-message HallEntered {
-    // 玩家信息
+// 玩家信息掩码
+enum PlayerMask {
+    Unknown = 0x00;
+    ID = 0x01;
+    CreatedAt = 0x02;
+    WechatUID = 0x04;
+    Nickname = 0x08;
+    Head = 0x10;
+    Money = 0x20;
+    Vip = 0x40;
+    Wechat = 0x80;
+    Idcard = 0x100;
+    Name = 0x200;
+    Supervisor = 0x400;
+    Ip = 0x800;
+    All = 0xFFF;
+    AfterPlayerExt = 0x380;
+    AfterPurchase = 0x60;
+}
+
+// @comments 拉取账号信息
+// @rpc response=GetMyResponse
+message GetMyRequest {
+    // 掩码
+    PlayerMask mask = 1;
+}
+
+// @comments 拉取账号信息结果
+message GetMyResponse {
+    // 账号信息
     PlayerSecret player = 1;
 }
+
+// @comments 拉取玩家公开信息
+// @rpc response=GetPlayerResponse
+message GetPlayerRequest {
+    // 玩家 ID
+    int32 player_id = 1;
+    // 要获取的信息
+    PlayerMask mask = 2;
+}
+
+// @comments 拉取玩家公开信息结果
+message GetPlayerResponse {
+    // 玩家信息
+    Player player = 1;
+}
+
+// @comments 已经进入大厅
+// @receive
+message HallEntered {}
 
 // @comments 在线人数
 // @receive
@@ -171,16 +218,6 @@ message Recover {
 
 // --------------------------------------↑大厅消息↑-----------------------------------------
 
-// @comments 房间类型
-enum NiuniuRoomType {
-    // 约战
-    Order = 0;
-    // 代开
-    PayForAnother = 1;
-    // 代理
-    Agent = 2;
-}
-
 // @comments 房间配置
 message NiuniuRoomOption {
     // 庄家模式
@@ -195,38 +232,26 @@ message NiuniuRoomOption {
     // 0 普通
     // 1 疯狂
     int32 mode = 3;
-    // 是否AA
-    bool isAA = 4;
     // 底分
-    int32 score = 5;
+    int32 score = 4;
+}
+
+// @comments 房间类型
+enum NiuniuRoomType {
+    // 约战
+    Order = 0;
+    // 代开
+    PayForAnother = 1;
+    // 流水
+    Flowing = 2;
 }
 
 // @comments 房间
-message NiuniuRoomData1 {
-    // 房间号
-    int32 id = 1;
-    // 房间配置
-    NiuniuRoomOption option = 2;
-    // 创建者
-    string creator = 5;
-    // 房主
-    string owner = 4;
+message NiuniuRoomData {
     // 房间玩家
-    int32 players = 6;
-    // 入场分数
-    int32 enter_money = 8;
-    // 离场分数
-    int32 leave_money = 9;
-    // 是否游戏中
-    bool gaming = 10;
-}
-
-// @comments 房间
-message NiuniuRoomData2 {
-    // 房间玩家
-    message RoomPlayer {
+    message PlayerData {
         // 玩家
-        Player player = 1;
+        int32 player = 1;
         // 位置
         int32 pos = 2;
         // 是否准备
@@ -238,23 +263,19 @@ message NiuniuRoomData2 {
     // 房间类型
     NiuniuRoomType type = 1;
     // 房间号
-    int32 id = 2;
+    int32 room_id = 2;
     // 房间配置
     NiuniuRoomOption option = 3;
     // 创建者
-    Player creator = 5;
+    int32 creator = 4;
     // 房主
-    Player owner = 4;
+    int32 owner = 5;
     // 房间玩家
-    repeated RoomPlayer players = 6;
-    // 观战玩家
-    repeated Player observers = 7;
-    // 入场分数
-    int32 enter_money = 8;
-    // 离场分数
-    int32 leave_money = 9;
+    repeated PlayerData players = 6;
+    // 入场限制
+    int32 join_money = 7;
     // 是否游戏中
-    bool gaming = 10;
+    bool gaming = 8;
 }
 
 // @comments 查询代开房间
@@ -264,83 +285,52 @@ message NiuniuQueryPayForAnotherRoomListRequest {}
 // @comments 查询代开房间结果
 message NiuniuQueryPayForAnotherRoomListResponse {
     // 房间
-    repeated NiuniuRoomData1 rooms = 2;
+    repeated NiuniuRoomData rooms = 1;
 }
 
-// @comments 查询代理房间数量
-// @rpc response=NiuniuQueryAgentRoomCountResponse
-message NiuniuQueryAgentRoomCountRequest {
-    // 查询代理的玩家 ID 对应的代理的房间
-    int32 player_id = 1;
-}
+// @comments 查询流水房间
+// @rpc response=NiuniuQueryFlowingRoomListResponse
+message NiuniuQueryFlowingRoomListRequest {}
 
-// @comments 查询代理房间数量结果
-message NiuniuQueryAgentRoomCountResponse {
-    // 房间数
-    int32 number = 1;
-}
-
-// @comments 查询代理房间
-// @rpc response=NiuniuQueryAgentRoomListResponse
-message NiuniuQueryAgentRoomListRequest {
-    // 范围条件
-    message RangeCondition {
-        int32 start = 1;
-        int32 number = 2;
-    }
-
-    // 查询代理的玩家 ID 对应的代理的房间
-    int32 player_id = 1;
-    // 查询范围
-    RangeCondition range = 2;
-}
-
-// @comments 查询代理房间结果
-message NiuniuQueryAgentRoomListResponse {
-    // 代理房间
-    repeated NiuniuRoomData1 rooms = 2;
+// @comments 查询流水房间结果
+message NiuniuQueryFlowingRoomListResponse {
+    // 房间
+    repeated NiuniuRoomData rooms = 1;
 }
 
 // @comments 牛牛战绩
-message NiuniuRecord {
-    // 玩家记录
-    message Player {
+message NiuniuHistory {
+    // 玩家
+    message PlayerData {
         // 玩家 ID
         int32 id = 1;
-        // 昵称
-        string nickname = 2;
         // 得分
         int32 points = 3;
         // 胜利场数
         int32 victories = 4;
     }
 
-    // 房间 ID
-    int32 room_id = 1;
     // 房间类型
-    // 0 玩家房间
-    // 1 代理房间
-    int32 option = 2;
+    NiuniuRoomType type = 1;
+    // 房间 ID
+    int32 room_id = 2;
     // 记录
-    repeated Player players = 3;
+    repeated PlayerData players = 3;
     // 时间
     string created_at = 4;
 }
 
 // @comments 查询战绩
-// @rpc response=NiuniuQueryRecordResponse
-message NiuniuQueryRecordRequest {}
+// @rpc response=NiuniuQueryHistoryResponse
+message NiuniuQueryHistoryRequest {}
 
 // @comments 查询战绩结果
-message NiuniuQueryRecordResponse {
+message NiuniuQueryHistoryResponse {
     // 牛牛战绩
-    repeated NiuniuRecord records = 1;
+    repeated NiuniuHistory histories = 1;
 }
 
 // @comments 创建房间
-// @comments 此消息用于创建游戏房间
-// @comments 同时用于创建约战房间和代开房间
-// @comments 当创建者创建房间后，即已经进入房间
 // @post
 message NiuniuCreateRoom {
     // 模式
@@ -353,19 +343,22 @@ message NiuniuCreateRoom {
 // @receive
 message NiuniuCreateRoomFailed {
     // 原因
-    // 0 未知
-    // 1 金币不足
-    // 2 已在房间
-    // 3 配置不合法
+    //  0 未知
+    //  1 金币不足
+    //  2 游戏已开始
+    // -1 玩家已进入房间
+    // -2 非合法的配置
     int32 reason = 1;
 }
 
 // @comments 房间被创建
 // @receive
-message NiuniuRoomCreated {}
+message NiuniuCreateRoomSuccess {
+    // 房间号
+    int32 room_id = 1;
+}
 
 // @comments 加入房间
-// @comments 这条消息可以加入玩家创建的房间和代理的在线房间
 // @post
 message NiuniuJoinRoom {
     // 房间号
@@ -376,82 +369,81 @@ message NiuniuJoinRoom {
 // @receive
 message NiuniuJoinRoomFailed {
     // 原因
-    // 0 未知
-    // 1 金币不足
-    // 2 已在房间
-    // 3 房间不存在
+    //  0 未知
+    //  1 房间不存在
+    //  2 金币不足
+    //  3 房间已满员
+    // -1 玩家已进入房间
     int32 reason = 1;
 }
 
 // @comments 已加入房间
 // @receive
-message NiuniuRoomJoined {
-    // 房间信息
-    NiuniuRoomData2 room = 1;
-}
-
-// @comments 离开房间
-// @post
-message NiuniuLeaveRoom {}
-
-// @comments 已离开房间
-// @receive
-message NiuniuRoomLeft {}
-
-// @comments 因房主解散离开了房间
-// @receive
-message NiuniuRoomLeftByDismiss {}
-
-// @comments 因金币不足离开了房间
-// @receive
-message NiuniuRoomLeftByMoneyNotEnough {}
-
-// @comments 房间状态更新
-// @receive
-message NiuniuUpdateRoom {
-    // 房间状态
-    NiuniuRoomData2 room = 1;
-}
-
-// @comments 切换准备/取消
-// @post
-message NiuniuSwitchReady {}
-
-// @comments 切换玩家/观战者
-// @post
-message NiuniuSwitchRole {}
+message NiuniuJoinRoomSuccess {}
 
 // @comments 解散房间
-// @comments 对于约战房间只有房主可以解散
-// @comments 对于代开房间只有创建者可以解散
 // @post
 message NiuniuDismiss {
     // 房间号
     int32 room_id = 1;
 }
 
-// @comments 倒数计时
+// @comments 请求离开房间
+// @post
+message NiuniuLeaveRoom {}
+
+// @comments 离开了房间
 // @receive
-message NiuniuCountdown {
-    // 时间
-    int32 number = 1;
+message NiuniuLeftRoom {
+    // 原因
+    // 0 未知
+    // 1 正常离开
+    // 2 解散
+    // 3 金币不足
+    int32 reason = 1;
 }
+
+// @comments 房间状态更新
+// @receive
+message NiuniuUpdateRoom {
+    // 状态
+    NiuniuRoomData room = 1;
+}
+
+// @comments 切换准备/取消
+// @post
+message NiuniuSwitchReady {}
 
 // @comments 开始游戏
-// @comments 只有房主可以开始
 // @post
-message NiuniuStart{}
+message NiuniuStart {}
 
-// @comments 游戏已开始
+// @comments 游戏开始
 // @receive
-message NiuniuStarted{
+message NiuniuGameStarted {}
+
+// @comments 回合开始
+// @receive
+message NiuniuRoundStarted {
+    // 回合数
     int32 round_number = 1;
 }
+
+// @comments 操作结束时间
+// @receive
+message NiuniuDeadline {
+    // 时间戳
+    int64 stamp = 1;
+}
+
+// @comments 继续
+// @post
+message NiuniuContinueWith {}
 
 // @comments 游戏状态
 message NiuniuRoundStatus {
     // 玩家游戏数据
-    message RoundPlayer {
+    message PlayerData {
         // 玩家 ID
         int32 id = 1;
         // 积分
@@ -469,23 +461,34 @@ message NiuniuRoundStatus {
     }
 
     // 游戏阶段
-    // require_specify_banker       选择庄家
-    // require_grab                 抢庄
-    // grab_animation               抢庄动画
-    // require_specify_rate         选择倍率
-    // require_commit_pokers        配牌
-    // round_clear                  小局结算
-    // round_finally                大局结算
-    string step = 6;
-    // 游戏所属房间
-    int32 room_id = 1;
-    // 当前局数
+    enum RoundStep {
+        // 空闲
+        Idle = 0;
+        // 选择庄家
+        SpecifyBanker = 1;
+        // 抢庄
+        Grab = 2;
+        // 抢庄动画
+        GrabShow = 3;
+        // 选择倍率
+        SpecifyRate = 4;
+        // 配牌
+        CommitPokers = 5;
+        // 小局结算
+        RoundClear = 6;
+        // 游戏结算
+        GameFinally = 7;
+    }
+
+    // 阶段
+    RoundStep step = 1;
+    // 局数
     int32 round_number = 2;
+    // 庄家
+    int32 banker = 3;
     // 玩家数据
-    repeated RoundPlayer players = 3;
-    // 本局庄家
-    int32 banker = 4;
-    // 玩家手牌
+    repeated PlayerData players = 4;
+    // 手牌
     repeated string pokers = 5;
 }
 
@@ -521,18 +524,18 @@ message NiuniuGrab {
     bool doing = 1;
 }
 
-// @comments 抢庄动画
+// @comments 要求播放抢庄动画
 // @receive
-message NiuniuGrabAnimation {
+message NiuniuRequireGrabShow {
     // 玩家
-    message GrabPlayer {
+    message PlayerData {
         // 玩家 ID
-        int32 player_id = 1;
+        int32 player = 1;
         // 是否抢庄
         bool grab = 2;
     }
 
-    repeated GrabPlayer players = 1;
+    repeated PlayerData players = 1;
 }
 
 // @comments 发牌4
@@ -562,37 +565,27 @@ message NiuniuDeal1 {
     // 牌
     string poker = 1;
     // 最佳牌型
-    string type = 2;
-    // 最佳手牌
-    repeated string pokers = 3;
+    string best_type = 2;
+    // 最佳配牌
+    repeated string best_pokers = 3;
 }
 
-// @comments 配牌
+// @comments 提交配牌
 // @post
 message NiuniuCommitPokers {
     // 牌
     repeated string pokers = 1;
 }
 
-// @comments 结算失败
-// @receive
-message NiuniuSettleFailed {}
-
-// @comments 结算成功
-// @receive
-message NiuniuSettleSuccess {}
-
-// @comments 动画已完成
-// @post
-message NiuniuContinueWith {}
-
-// @comments 小局结束
+// @comments 小局清算
 // @receive
 message NiuniuRoundClear {
     // 结算结果
-    message RoundClearPlayer {
+    message PlayerData {
         // 玩家
-        Player player = 1;
+        int32 player = 1;
+        // 总分
+        int32 points = 2;
         // 牌型
         // boom 炸弹
         // full_house 葫芦
@@ -602,32 +595,30 @@ message NiuniuRoundClear {
         // straight_flush 同花顺
         // flush 同花
         // straight 顺子
-        string type = 2;
+        string type = 3;
         // 权重
-        int32 weight = 7;
+        int32 weight = 4;
         // 倍率
-        int32 rate = 3;
+        int32 rate = 5;
         // 得分
-        int32 this_points = 4;
+        int32 this_points = 6;
         // 手牌
-        repeated string pokers = 5;
-        // 总分
-        int32 points = 6;
+        repeated string pokers = 7;
     }
 
     // 结果
-    repeated RoundClearPlayer players = 1;
+    repeated PlayerData players = 1;
     // 时间
     string finally_at = 2;
 }
 
-// @comments 约战清算
+// @comments 游戏清算
 // @receive
-message NiuniuRoundFinally {
+message NiuniuGameFinally {
     // 结算结果
-    message RoundFinallyPlayer {
+    message PlayerData {
         // 玩家
-        Player player = 1;
+        int32 player = 1;
         // 总分
         int32 points = 2;
         // 胜场
@@ -635,7 +626,7 @@ message NiuniuRoundFinally {
     }
 
     // 结果
-    repeated RoundFinallyPlayer players = 1;
+    repeated PlayerData players = 1;
     // 时间
     string finally_at = 2;
 }
@@ -643,7 +634,7 @@ message NiuniuRoundFinally {
 // --------------------------------------↑牛牛↑-----------------------------------------
 
 // @comments 红包配置
-message RedRedPaperBagOption {
+message RedBagOption {
     // 金币数
     int32 money = 1;
     // 人数
@@ -654,107 +645,45 @@ message RedRedPaperBagOption {
 
 // @comments 创建红包
 // @post
-message RedCreateRedPaperBag {
+message RedCreateBag {
     // 配置
-    RedRedPaperBagOption option = 1;
+    RedBagOption option = 1;
 }
 
 // @comments 红包创建失败
 // @receive
-message RedCreateRedPaperBagFailed {
+message RedCreateBagFailed {
     // 原因
-    // 0 未知
-    // 1 金币不足
+    //  0 未知
+    //  1 金币不足
+    // -1 非合法的配置
     int32 reason = 1;
 }
 
 // @comments 红包创建成功
 // @receive
-message RedCreateRedPaperBagSuccess {
+message RedCreateBagSuccess {
     // 红包 ID
     int32 id = 1;
 }
 
-// @comments 红包 1
-message RedRedPaperBag1 {
-    // 抢红包玩家
-    message RedPlayer {
-        // 昵称
-        string nickname = 1;
-        // 头像
-        string head = 2;
-    }
-
+// @comments 红包
+message RedBag {
     // ID
     int32 id = 1;
     // 配置
-    RedRedPaperBagOption option = 2;
-    // 已抢红包玩家数
-    int32 playerNumber = 3;
-    // 创建者信息
-    RedPlayer creator = 4;
-    // 我是否抢了这个红包
-    bool my_grabbed = 5;
-}
-
-// @comments 红包 2
-message RedRedPaperBag2 {
-    // ID
-    int32 id = 1;
-    // 配置
-    RedRedPaperBagOption option = 2;
+    RedBagOption option = 2;
+    // 创建者
+    int32 creator = 4;
     // 已抢红包玩家
-    repeated Player players = 3;
-}
-
-// @comments 红包 3
-message RedRedPaperBag3 {
-    // 红包庄家
-    message RedCreator {
-        // 玩家信息
-        Player player = 1;
-        // 获得的赔付
-        // 未扣除手续费
-        int32 get = 2;
-        // 支出
-        int32 cost = 3;
-        // 手续费
-        int32 charge = 4;
-    }
-    // 抢红包玩家
-    message RedPlayer {
-        // 玩家信息
-        Player player = 1;
-        // 抢到多少
-        // 未扣除手续费
-        int32 grab = 2;
-        // 我赔付了多少
-        int32 pay = 4;
-        // 手续费
-        int32 charge = 6;
-        // 抢到红包的时间
-        string grab_at = 7;
-        // 是否是创建者
-        bool creator = 8;
-    }
-
-    // ID
-    int32 id = 1;
-    // 配置
-    RedRedPaperBagOption option = 2;
-    // 庄家
-    RedCreator creator = 3;
-    // 已抢红包玩家
-    repeated RedPlayer players = 4;
-    // 花费多长时间抢完
-    int32 used_time = 5;
+    repeated int32 players = 3;
 }
 
 // @comments 红包列表
 // @receive
-message RedUpdateRedPaperBagList {
+message RedUpdateBagList {
     // 列表
-    repeated RedRedPaperBag1 bags = 2;
+    repeated RedBag bags = 1;
 }
 
 // @comments 抢红包
@@ -771,7 +700,7 @@ message RedGrabFailed {
     // 0 未知
     // 1 红包不存在
     // 2 金币不足
-    // 3 人数已满
+    // 3 已被抢完
     int32 reason = 1;
 }
 
@@ -783,33 +712,81 @@ message RedGrabSuccess {}
 // @post
 message RedLeave {}
 
-// @comments 红包剩余时间
+// @comments 红包销毁时间
 // @receive
-message RedRedPaperBagCountdown {
-    // 时间
-    int32 number = 1;
+message RedDeadline {
+    // 时间戳
+    int64 stamp = 1;
 }
 
 // @comments 红包详情刷新
 // @receive
-message RedUpdateRedPaperBag {
+message RedUpdateBag {
     // 红包详情
-    RedRedPaperBag2 bag = 1;
+    RedBag bag = 1;
+}
+
+// @comments 红包结算
+message RedBagClear {
+    // 庄家
+    message CreatorData {
+        // 玩家
+        int32 player = 1;
+        // 支出
+        int32 cost = 2;
+        // 赔付收入
+        int32 get = 3;
+        // 赔付收入的手续费
+        int32 charge = 4;
+    }
+    // 玩家
+    message PlayerData {
+        // 玩家
+        int32 player = 1;
+        // 收入
+        int32 grab = 2;
+        // 抢到红包的时间
+        string grab_at = 7;
+        // 是否是创建者
+        bool creator = 8;
+        // 赔付支出
+        int32 pay = 4;
+        // 收入的手续费
+        int32 charge = 6;
+    }
+
+    // ID
+    int32 id = 1;
+    // 配置
+    RedBagOption option = 2;
+    // 庄家
+    CreatorData creator = 3;
+    // 已抢红包玩家
+    repeated PlayerData players = 4;
+    // 时长
+    int32 used_time = 5;
 }
 
 // @comments 获取红包结果
-// @rpc response=RedGetRedPaperBagResultResponse
-message RedGetRedPaperBagResultRequest {}
+// @rpc response=RedGetBagClearResponse
+message RedGetBagClearRequest {}
 
 // @comments 获取红包结果
-message RedGetRedPaperBagResultResponse {
+message RedGetBagClearResponse {
     // 结果
-    RedRedPaperBag3 bag = 2;
+    RedBagClear bag = 1;
+}
+
+// @comments 已发红包结算
+// @receive
+message RedHandsBagSettled {
+    // 结果
+    RedBagClear bag = 1;
 }
 
 // @comments 红包销毁
 // @receive
-message RedRedPaperBagDestory {
+message RedBagDestroyed {
     int32 id = 1;
 }
 
@@ -820,36 +797,29 @@ message RedGetHistoryRequest {}
 // @comments 获取红包历史结果
 message RedGetHistoryResponse {
     // 我抢的
-    repeated RedRedPaperBag3 grabs = 1;
+    repeated RedBagClear grabs = 1;
     // 我发的
-    repeated RedRedPaperBag3 hands = 2;
-}
-
-// @comments 已发红包结算
-// @receive
-message RedHandsRedPaperBagSettled {
-    // 结果
-    RedRedPaperBag3 bag = 1;
+    repeated RedBagClear hands = 2;
 }
 
 // --------------------------------------↑红包↑-----------------------------------------
 
 // @comments 红包配置
-message Lever28RedPaperBagOption {
+message Lever28BagOption {
     // 金币数
     int32 money = 1;
 }
 
 // @comments 创建红包
 // @post
-message Lever28CreateRedPaperBag {
+message Lever28CreateBag {
     // 配置
-    Lever28RedPaperBagOption option = 1;
+    Lever28BagOption option = 1;
 }
 
 // @comments 红包创建失败
 // @receive
-message Lever28CreateRedPaperBagFailed {
+message Lever28CreateBagFailed {
     // 原因
     // 0 未知
     // 1 金币不足
@@ -858,82 +828,28 @@ message Lever28CreateRedPaperBagFailed {
 
 // @comments 红包创建成功
 // @receive
-message Lever28CreateRedPaperBagSuccess {
+message Lever28CreateBagSuccess {
     // 红包 ID
     int32 id = 1;
 }
 
-// @comments 红包 1
-message Lever28RedPaperBag1 {
-    // 抢红包玩家
-    message RedPlayer {
-        // 昵称
-        string nickname = 1;
-        // 头像
-        string head = 2;
-    }
-
+// @comments 红包
+message Lever28Bag {
     // ID
     int32 id = 1;
     // 配置
-    Lever28RedPaperBagOption option = 2;
-    // 已抢红包玩家数
-    int32 playerNumber = 3;
+    Lever28BagOption option = 2;
     // 创建者
-    RedPlayer creator = 4;
-    // 我是否抢了这个红包
-    bool my_grabbed = 5;
-}
-
-// @comments 红包 2
-message Lever28RedPaperBag2 {
-    // ID
-    int32 id = 1;
-    // 配置
-    Lever28RedPaperBagOption option = 2;
+    int32 creator = 4;
     // 已抢红包玩家
-    repeated Player players = 3;
-}
-
-// @comments 红包 3
-message Lever28RedPaperBag3 {
-    // 抢红包玩家
-    message RedPlayer {
-        // 玩家信息
-        Player player = 1;
-        // 赔付金币数
-        int32 pay = 2;
-        // 抢到金币数
-        int32 grab = 3;
-        // 抢到金币的手续费
-        int32 grab_charge = 4;
-        // 赢得金币数
-        int32 get = 5;
-        // 赢得金币的手续费
-        int32 get_charge = 6;
-        // 牌面
-        repeated int32 mahjong = 7;
-        // 抢到红包的时间
-        string grab_at = 8;
-        // 创建者
-        bool creator = 9;
-    }
-
-    // ID
-    int32 id = 1;
-    // 配置
-    Lever28RedPaperBagOption option = 2;
-    // 已抢红包玩家
-    repeated RedPlayer players = 3;
-    // 花费多长时间抢完
-    int32 used_time = 4;
+    repeated int32 players = 3;
 }
 
 // @comments 红包列表
 // @receive
-message Lever28UpdateRedPaperBagList {
+message Lever28UpdateBagList {
     // 列表
-    repeated Lever28RedPaperBag1 bags = 2;
+    repeated Lever28Bag bags = 1;
 }
 
 // @comments 抢红包
@@ -950,7 +866,7 @@ message Lever28GrabFailed {
     // 0 未知
     // 1 红包不存在
     // 2 金币不足
-    // 3 人数已满
+    // 3 已被抢完
     int32 reason = 1;
 }
 
@@ -962,33 +878,67 @@ message Lever28GrabSuccess {}
 // @post
 message Lever28Leave {}
 
-// @comments 红包剩余时间
+// @comments 红包销毁时间
 // @receive
-message Lever28RedPaperBagCountdown {
-    // 时间
-    int32 number = 1;
+message Lever28Deadline {
+    // 时间戳
+    int64 stamp = 1;
 }
 
 // @comments 红包详情刷新
 // @receive
-message Lever28UpdateRedPaperBag {
+message Lever28UpdateBag {
     // 红包详情
-    Lever28RedPaperBag2 bag = 1;
+    Lever28Bag bag = 1;
+}
+
+// @comments 红包结算
+message Lever28BagClear {
+    // 玩家
+    message PlayerData {
+        // 玩家信息
+        int32 player = 1;
+        // 抢到金币数
+        int32 grab = 3;
+        // 抢到金币的手续费
+        int32 grab_charge = 4;
+        // 赔付金币数
+        int32 pay = 2;
+        // 赢得金币数
+        int32 get = 5;
+        // 赢得金币的手续费
+        int32 get_charge = 6;
+        // 牌面
+        repeated int32 mahjong = 7;
+        // 抢到红包的时间
+        string grab_at = 8;
+        // 创建者
+        bool creator = 9;
+    }
+
+    // ID
+    int32 id = 1;
+    // 配置
+    Lever28BagOption option = 2;
+    // 已抢红包玩家
+    repeated PlayerData players = 3;
+    // 花费多长时间抢完
+    int32 used_time = 4;
 }
 
 // @comments 获取红包结果
-// @rpc response=Lever28GetRedPaperBagResultResponse
-message Lever28GetRedPaperBagResultRequest {}
+// @rpc response=Lever28GetBagClearResponse
+message Lever28GetBagClearRequest {}
 
 // @comments 获取红包结果
-message Lever28GetRedPaperBagResultResponse {
+message Lever28GetBagClearResponse {
     // 结果
-    Lever28RedPaperBag3 bag = 2;
+    Lever28BagClear bag = 1;
 }
 
 // @comments 红包销毁
 // @receive
-message Lever28RedPaperBagDestory {
+message Lever28BagDestroyed {
     int32 id = 1;
 }
 
@@ -999,9 +949,9 @@ message Lever28GetHistoryRequest {}
 // @comments 获取红包历史结果
 message Lever28GetHistoryResponse {
     // 我抢的
-    repeated Lever28RedPaperBag3 grabs = 2;
+    repeated Lever28BagClear grabs = 1;
     // 我发的
-    repeated Lever28RedPaperBag3 hands = 3;
+    repeated Lever28BagClear hands = 2;
 }
 
 // @comments --------------------------------------↑二八杠↑-----------------------------------------
@@ -1014,15 +964,14 @@ message GomokuCreateRoom {}
 // @receive
 message GomokuCreateRoomFailed {
     // 原因
-    // 0 未知
-    // 1 金币不足
-    // 2 已在房间
+    //  0 未知
+    // -1 玩家已进入房间
     int32 reason = 1;
 }
 
-// @comments 房间已创建
+// @comments 房间创建成功
 // @receive
-message GomokuRoomCreated {
+message GomokuCreateRoomSuccess {
     // 房间 ID
     int32 room_id = 1;
 }
@@ -1038,17 +987,16 @@ message GomokuJoinRoom {
 // @receive
 message GomokuJoinRoomFailed {
     // 原因
-    // 0 未知
-    // 1 房间不存在
-    // 2 金币不足
-    // 3 已在房间
-    // 4 人已满
+    //  0 未知
+    //  1 房间不存在
+    //  2 房间已满员
+    // -1 玩家已进入房间
     int32 reason = 1;
 }
 
 // @comments 已进入房间
 // @receive
-message GomokuRoomEntered {}
+message GomokuJoinRoomSuccess {}
 
 // @comments 设置学费
 // @post
@@ -1060,11 +1008,11 @@ message GomokuSetCost {
 // @receive
 message GomokuSetRoomCostFailed {
     // 原因
-    // 0 未知
-    // 1 非合法
-    // 2 学生金币不足
-    // 3 不在房间
-    // 4 没有权限
+    //  0 未知
+    //  1 数额不合法
+    //  2 金币不足
+    // -1 玩家未在房间
+    // -2 没有权限
     int32 reason = 1;
 }
 
@@ -1073,9 +1021,9 @@ message GomokuRoom {
     // 房间 ID
     int32 id = 1;
     // 创建者
-    Player creator = 2;
+    int32 creator = 2;
     // 学生
-    Player student = 3;
+    int32 student = 3;
     // 学费
     int32 cost = 4;
 }
@@ -1091,17 +1039,19 @@ message GomokuUpdateRoom {
 // @post
 message GomokuLeave {}
 
-// @comments 已离开房间
-// @receive
-message GomokuLeft {}
-
 // @comments 解散房间
 // @post
 message GomokuDismiss {}
 
-// @comments 因房间解散已离开房间
+// @comments 已离开房间
 // @receive
-message GomokuLeftByDismiss {}
+message GomokuLeft {
+    // 原因
+    // 0 未知
+    // 1 解散
+    // 2 主动离开
+    int32 reason = 1;
+}
 
 // @comments 开始游戏
 // @post
@@ -1130,9 +1080,9 @@ message GomokuRequirePlay {
 
 // @comments 走棋倒计时
 // @receive
-message GomokuUpdatePlayCountdown {
-    // 时间
-    int32 number = 1;
+message GomokuUpdatePlayDeadline {
+    // 时间戳
+    int64 stamp = 1;
     // 是否是自己
     bool is = 2;
 }
@@ -1152,39 +1102,29 @@ message GomokuSurrender {}
 
 // @comments 你赢了
 // @receive
-message GomokuVictory {
-    // 胜者金币
-    int32 victory_money = 1;
-    // 败者金币
-    int32 loser_money = 2;
-}
+message GomokuVictory {}
 
 // @comments 你输了
 // @receive
-message GomokuLost {
-    // 胜者金币
-    int32 victory_money = 1;
-    // 败者金币
-    int32 loser_money = 2;
-}
+message GomokuLost {}
 
 // @comments 五子棋战绩
-message GomokuRecord {
-    // 对手玩家 ID
-    Player player_id = 1;
+message GomokuHistory {
+    // 对手玩家
+    int32 player_id = 1;
     // 学费
     int32 cost = 3;
     // 时间
     string created_at = 4;
 }
 // @comments 查询五子棋战绩请求
-// @rpc response=GomokuGetRecordResponse
-message GomokuGetRecordRequest {}
+// @rpc response=GomokuGetHistoryResponse
+message GomokuGetHistoryRequest {}
 
 // @comments 查询五子棋战绩结果
-message GomokuGetRecordResponse {
+message GomokuGetHistoryResponse {
     // 结果
-    repeated GomokuRecord records = 1;
+    repeated GomokuHistory histories = 1;
 }
 
 // --------------------------------------↑五子棋↑-----------------------------------------

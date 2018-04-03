@@ -9,25 +9,21 @@ import (
 	"github.com/liuhan907/waka/waka-cow/conf"
 )
 
+const (
+	DefaultSupervisor    = 100000
+	DefaultVictoryWeight = 50
+)
+
 // 玩家
 type Player int32
 
 func (player Player) PlayerData() *PlayerData {
-	if player == 0 {
+	playerData, being, err := QueryPlayerByPlayer(player)
+	if err != nil || !being {
 		return &PlayerData{
-			Nickname: "unknown",
-		}
-	}
-
-	playerData, being, err := QueryPlayerByRef(player)
-	if err != nil {
-		return &PlayerData{
-			Nickname: "failed",
-		}
-	}
-	if !being {
-		return &PlayerData{
-			Nickname: "unknown",
+			Nickname:      "unknown",
+			Supervisor:    DefaultSupervisor,
+			VictoryWeight: DefaultVictoryWeight,
 		}
 	}
 	return playerData
@@ -36,38 +32,40 @@ func (player Player) PlayerData() *PlayerData {
 // 玩家数据
 type PlayerData struct {
 	// 主键
-	Ref Player `gorm:"index;primary_key;AUTO_INCREMENT"`
-	// 微信 UnionID
-	UnionID string `gorm:"index;unique;column:union_id"`
-	// 登陆令牌
-	Token string `gorm:"index"`
+	Id Player `gorm:"index;unique;primary_key;AUTO_INCREMENT"`
+	// 创建时间
+	CreatedAt time.Time
 
-	// 昵称
+	// 微信登陆返回的 unionid
+	WechatUnionid string `gorm:"index;unique;column:wechat_unionid"`
+	// 微信昵称
 	Nickname string
-	// 头像URL
+	// 微信头像 URL
 	Head string
-	// 微信号
-	Wechat string
-	// 姓名
-	Name string
-	// 身份证
-	Idcard string
-	// 上级代理
-	Supervisor Player
+
+	// 登陆令牌
+	Token string `gorm:"index;unique"`
 
 	// 钱
 	Money int32
 	// VIP 时间
 	Vip time.Time
 
+	// 微信号
+	Wechat string
+	// 姓名
+	Name string
+	// 身份证
+	Idcard string
+
+	// 上级代理
+	Supervisor Player
+
 	// 封禁
 	Ban int32
 
-	// 创建时间
-	CreatedAt time.Time
-
-	// 胜率
-	VictoryRate int32
+	// 权重
+	VictoryWeight int32
 }
 
 func (PlayerData) TableName() string {
@@ -77,25 +75,26 @@ func (PlayerData) TableName() string {
 // ---------------------------------------------------------------------------------------------------------------------
 
 var (
-	playersLock      sync.RWMutex
-	playersByPlayer  = make(map[Player]*PlayerData)
-	playersByUnionID = make(map[string]*PlayerData)
-	playersByToken   = make(map[string]*PlayerData)
+	playersLock     sync.RWMutex
+	playersById     = make(map[Player]*PlayerData)
+	playersByWechat = make(map[string]*PlayerData)
+	playersByToken  = make(map[string]*PlayerData)
 )
 
 // ---------------------------------------------------------------------------------------------------------------------
 
 // 注册玩家
-func RegisterPlayer(unionID, nickname string, head, token string) (*PlayerData, error) {
+func RegisterPlayer(uid, nickname string, head, token string) (*PlayerData, error) {
 	player := &PlayerData{
-		UnionID:   unionID,
-		Token:     token,
-		Nickname:  nickname,
-		Head:      head,
-		Money:     conf.Option.Hall.RegisterMoney,
-		Vip:       time.Now(),
-		Ban:       0,
-		CreatedAt: time.Now(),
+		CreatedAt:     time.Now(),
+		WechatUnionid: uid,
+		Nickname:      nickname,
+		Head:          head,
+		Token:         token,
+		Money:         conf.Option.Hall.RegisterMoney,
+		Vip:           time.Now(),
+		Supervisor:    DefaultSupervisor,
+		VictoryWeight: DefaultVictoryWeight,
 	}
 	if err := mysql.Create(player).Error; err != nil {
 		return nil, err
@@ -103,8 +102,8 @@ func RegisterPlayer(unionID, nickname string, head, token string) (*PlayerData, 
 
 	playersLock.Lock()
 
-	playersByPlayer[player.Ref] = player
-	playersByUnionID[player.UnionID] = player
+	playersById[player.Id] = player
+	playersByWechat[player.WechatUnionid] = player
 	playersByToken[player.Token] = player
 
 	playersLock.Unlock()
@@ -113,8 +112,8 @@ func RegisterPlayer(unionID, nickname string, head, token string) (*PlayerData, 
 }
 
 // 更新玩家登录信息
-func UpdatePlayerLogin(ref Player, nickname string, head, token string) error {
-	if err := mysql.Model(&PlayerData{}).Where("ref = ?", ref).Update(&PlayerData{
+func UpdatePlayerLogin(id Player, nickname string, head, token string) error {
+	if err := mysql.Model(&PlayerData{}).Where("id = ?", id).Update(&PlayerData{
 		Nickname: nickname,
 		Head:     head,
 		Token:    token,
@@ -124,7 +123,7 @@ func UpdatePlayerLogin(ref Player, nickname string, head, token string) error {
 
 	playersLock.Lock()
 
-	player, being := playersByPlayer[ref]
+	player, being := playersById[id]
 	if being {
 		delete(playersByToken, player.Token)
 
@@ -141,8 +140,8 @@ func UpdatePlayerLogin(ref Player, nickname string, head, token string) error {
 }
 
 // 更新玩家代理信息
-func UpdatePlayerSupervisor(ref, supervisor Player) error {
-	if err := mysql.Model(&PlayerData{}).Where("ref = ?", ref).Updates(&PlayerData{
+func UpdatePlayerSupervisor(id, supervisor Player) error {
+	if err := mysql.Model(&PlayerData{}).Where("id = ?", id).Updates(&PlayerData{
 		Supervisor: supervisor,
 	}).Error; err != nil {
 		return err
@@ -150,7 +149,7 @@ func UpdatePlayerSupervisor(ref, supervisor Player) error {
 
 	playersLock.Lock()
 
-	player, being := playersByPlayer[ref]
+	player, being := playersById[id]
 	if being {
 		player.Supervisor = supervisor
 	}
@@ -161,8 +160,8 @@ func UpdatePlayerSupervisor(ref, supervisor Player) error {
 }
 
 // 更新玩家附加信息
-func UpdatePlayerExt(ref Player, wechat, name, idcard string) error {
-	if err := mysql.Model(&PlayerData{}).Where("ref = ?", ref).Updates(&PlayerData{
+func UpdatePlayerExt(id Player, wechat, name, idcard string) error {
+	if err := mysql.Model(&PlayerData{}).Where("id = ?", id).Updates(&PlayerData{
 		Wechat: wechat,
 		Name:   name,
 		Idcard: idcard,
@@ -172,7 +171,7 @@ func UpdatePlayerExt(ref Player, wechat, name, idcard string) error {
 
 	playersLock.Lock()
 
-	player, being := playersByPlayer[ref]
+	player, being := playersById[id]
 	if being {
 		player.Wechat = wechat
 		player.Name = name
@@ -184,11 +183,11 @@ func UpdatePlayerExt(ref Player, wechat, name, idcard string) error {
 	return nil
 }
 
-// 根据 Ref 查询玩家
-func QueryPlayerByRef(ref Player) (*PlayerData, bool, error) {
+// 根据 Player 查询玩家
+func QueryPlayerByPlayer(id Player) (*PlayerData, bool, error) {
 	playersLock.RLock()
 
-	player, being := playersByPlayer[ref]
+	player, being := playersById[id]
 	if being {
 		playersLock.RUnlock()
 		return player, true, nil
@@ -196,8 +195,10 @@ func QueryPlayerByRef(ref Player) (*PlayerData, bool, error) {
 
 	playersLock.RUnlock()
 
-	player = &PlayerData{}
-	if err := mysql.Where("ref = ?", ref).First(player).Error; err != nil {
+	player = &PlayerData{
+		Id: id,
+	}
+	if err := mysql.First(player).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, false, nil
 		} else {
@@ -207,8 +208,8 @@ func QueryPlayerByRef(ref Player) (*PlayerData, bool, error) {
 
 	playersLock.Lock()
 
-	playersByPlayer[ref] = player
-	playersByUnionID[player.UnionID] = player
+	playersById[id] = player
+	playersByWechat[player.WechatUnionid] = player
 	playersByToken[player.Token] = player
 
 	playersLock.Unlock()
@@ -239,8 +240,8 @@ func QueryPlayerByToken(token string) (*PlayerData, bool, error) {
 
 	playersLock.Lock()
 
-	playersByPlayer[player.Ref] = player
-	playersByUnionID[player.UnionID] = player
+	playersById[player.Id] = player
+	playersByWechat[player.WechatUnionid] = player
 	playersByToken[player.Token] = player
 
 	playersLock.Unlock()
@@ -248,11 +249,11 @@ func QueryPlayerByToken(token string) (*PlayerData, bool, error) {
 	return player, true, nil
 }
 
-// 根据微信UID 查询玩家
-func QueryPlayerByWechatUID(uid string) (*PlayerData, bool, error) {
+// 根据 WechatUnionid 查询玩家
+func QueryPlayerByWechatUnionid(uid string) (*PlayerData, bool, error) {
 	playersLock.RLock()
 
-	player, being := playersByUnionID[uid]
+	player, being := playersByWechat[uid]
 	if being {
 		playersLock.RUnlock()
 		return player, true, nil
@@ -261,7 +262,7 @@ func QueryPlayerByWechatUID(uid string) (*PlayerData, bool, error) {
 	playersLock.RUnlock()
 
 	player = &PlayerData{}
-	if err := mysql.Where("union_id = ?", uid).First(player).Error; err != nil {
+	if err := mysql.Where("wechat_uid = ?", uid).First(player).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, false, nil
 		} else {
@@ -271,8 +272,8 @@ func QueryPlayerByWechatUID(uid string) (*PlayerData, bool, error) {
 
 	playersLock.Lock()
 
-	playersByPlayer[player.Ref] = player
-	playersByUnionID[player.UnionID] = player
+	playersById[player.Id] = player
+	playersByWechat[player.WechatUnionid] = player
 	playersByToken[player.Token] = player
 
 	playersLock.Unlock()
@@ -280,14 +281,14 @@ func QueryPlayerByWechatUID(uid string) (*PlayerData, bool, error) {
 	return player, true, nil
 }
 
-//刷新缓存
-func RefreshPlayer(player Player) {
+// 删除缓存
+func RefreshCache(player Player) {
 	playersLock.Lock()
 
-	playerData, being := playersByPlayer[player]
+	playerData, being := playersById[player]
 	if being {
-		delete(playersByPlayer, player)
-		delete(playersByUnionID, playerData.UnionID)
+		delete(playersById, player)
+		delete(playersByWechat, playerData.WechatUnionid)
 		delete(playersByToken, playerData.Token)
 	}
 

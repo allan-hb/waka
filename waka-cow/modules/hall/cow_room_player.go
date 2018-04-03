@@ -1,6 +1,7 @@
 package hall
 
 import (
+	"math"
 	"math/rand"
 	"reflect"
 	"sort"
@@ -11,10 +12,10 @@ import (
 	"github.com/liuhan907/waka/waka-cow/modules/hall/tools/cow"
 	"github.com/liuhan907/waka/waka-cow/proto"
 	"github.com/sirupsen/logrus"
-	linq "gopkg.in/ahmetb/go-linq.v3"
+	"gopkg.in/ahmetb/go-linq.v3"
 )
 
-type orderRoundPlayerT struct {
+type playerRoundPlayerT struct {
 	// 总分
 	Points int32
 	// 胜利的场数
@@ -53,39 +54,39 @@ type orderRoundPlayerT struct {
 	PokersPoints int32
 }
 
-type orderPlayerT struct {
-	Room *orderRoomT
+type playerPlayerT struct {
+	Room *playerRoomT
 
 	Player database.Player
 	Pos    int32
 	Ready  bool
 
-	Round orderRoundPlayerT
+	Round playerRoundPlayerT
 }
 
-func (player *orderPlayerT) NiuniuRoomData2RoomPlayer() (pb *waka.NiuniuRoomData2_RoomPlayer) {
+func (player *playerPlayerT) NiuniuRoomDataPlayerData() (pb *cow_proto.NiuniuRoomData_PlayerData) {
 	lost := false
 	if player, being := player.Room.Hall.players[player.Player]; !being || player.Remote == "" {
 		lost = true
 	}
-	return &waka.NiuniuRoomData2_RoomPlayer{
-		Player: player.Room.Hall.ToPlayer(player.Player),
+	return &cow_proto.NiuniuRoomData_PlayerData{
+		Player: int32(player.Player),
 		Pos:    player.Pos,
 		Ready:  player.Ready,
 		Lost:   lost,
 	}
 }
 
-type orderPlayerMapT map[database.Player]*orderPlayerT
+type playerPlayerMapT map[database.Player]*playerPlayerT
 
-func (players orderPlayerMapT) NiuniuRoomData2RoomPlayer() (pb []*waka.NiuniuRoomData2_RoomPlayer) {
+func (players playerPlayerMapT) NiuniuRoomDataPlayerData() (pb []*cow_proto.NiuniuRoomData_PlayerData) {
 	for _, player := range players {
-		pb = append(pb, player.NiuniuRoomData2RoomPlayer())
+		pb = append(pb, player.NiuniuRoomDataPlayerData())
 	}
 	return pb
 }
 
-func (players orderPlayerMapT) ToSlice() (d []*orderPlayerT) {
+func (players playerPlayerMapT) ToSlice() (d []*playerPlayerT) {
 	for _, player := range players {
 		d = append(d, player)
 	}
@@ -94,14 +95,15 @@ func (players orderPlayerMapT) ToSlice() (d []*orderPlayerT) {
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-type orderRoomT struct {
+type playerRoomT struct {
 	Hall *actorT
 
-	Id        int32
-	Option    *waka.NiuniuRoomOption
-	Owner     database.Player
-	Players   orderPlayerMapT
-	Observers map[database.Player]database.Player
+	Id      int32
+	Type    cow_proto.NiuniuRoomType
+	Option  *cow_proto.NiuniuRoomOption
+	Creator database.Player
+	Owner   database.Player
+	Players playerPlayerMapT
 
 	loop func() bool
 	tick func()
@@ -110,116 +112,92 @@ type orderRoomT struct {
 
 	Gaming      bool
 	RoundNumber int32
-	Step        string
+	Step        cow_proto.NiuniuRoundStatus_RoundStep
 	Banker      database.Player
-
-	Distribution []map[database.Player][]string
-	King         []database.Player
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-func (r *orderRoomT) CreateMoney() int32 {
-	if r.Option.GetIsAA() {
+func (r *playerRoomT) CreateMoney() int32 {
+	if r.Type == cow_proto.NiuniuRoomType_Order {
 		return int32(float64(r.Option.GetScore())*0.3+0.5) * r.Option.GetGames()
-	} else {
+	} else if r.Type == cow_proto.NiuniuRoomType_PayForAnother {
 		return int32(float64(r.Option.GetScore())*0.3+0.5) * r.Option.GetGames() * 5
+	} else {
+		return math.MaxInt32
 	}
 }
 
-func (r *orderRoomT) EnterMoney() int32 {
+func (r *playerRoomT) JoinMoney() int32 {
+	if r.Type == cow_proto.NiuniuRoomType_Order {
+		return r.CreateMoney()
+	} else if r.Type == cow_proto.NiuniuRoomType_PayForAnother {
+		return 0
+	} else {
+		return math.MaxInt32
+	}
+}
+
+func (r *playerRoomT) StartMoney() int32 {
 	return r.CreateMoney()
 }
 
-func (r *orderRoomT) LeaveMoney() int32 {
-	return r.EnterMoney()
+func (r *playerRoomT) GetType() cow_proto.NiuniuRoomType {
+	return r.Type
 }
 
-func (r *orderRoomT) CostMoney() int32 {
-	if r.Option.GetIsAA() {
-		return int32(float64(r.Option.GetScore())*0.3+0.5) * r.Option.GetGames()
-	} else {
-		return int32(float64(r.Option.GetScore())*0.3+0.5) * r.Option.GetGames() * int32(len(r.Players))
-	}
-}
-
-func (r *orderRoomT) GetType() waka.NiuniuRoomType {
-	return waka.NiuniuRoomType_Order
-}
-
-func (r *orderRoomT) GetId() int32 {
+func (r *playerRoomT) GetId() int32 {
 	return r.Id
 }
 
-func (r *orderRoomT) GetOption() *waka.NiuniuRoomOption {
+func (r *playerRoomT) GetOption() *cow_proto.NiuniuRoomOption {
 	return r.Option
 }
 
-func (r *orderRoomT) GetCreator() database.Player {
+func (r *playerRoomT) GetCreator() database.Player {
+	return r.Creator
+}
+
+func (r *playerRoomT) GetOwner() database.Player {
 	return r.Owner
 }
 
-func (r *orderRoomT) GetOwner() database.Player {
-	return r.Owner
-}
-
-func (r *orderRoomT) GetGaming() bool {
+func (r *playerRoomT) GetGaming() bool {
 	return r.Gaming
 }
 
-func (r *orderRoomT) GetRoundNumber() int32 {
+func (r *playerRoomT) GetRoundNumber() int32 {
 	return r.RoundNumber
 }
 
-func (r *orderRoomT) GetBanker() database.Player {
+func (r *playerRoomT) GetBanker() database.Player {
 	return r.Banker
 }
 
-func (r *orderRoomT) GetPlayers() []database.Player {
+func (r *playerRoomT) GetPlayers() []database.Player {
 	var d []database.Player
 	linq.From(r.Players).SelectT(func(pair linq.KeyValue) database.Player { return pair.Key.(database.Player) }).ToSlice(&d)
 	return d
 }
 
-func (r *orderRoomT) GetObservers() []database.Player {
-	var d []database.Player
-	linq.From(r.Observers).SelectT(func(pair linq.KeyValue) database.Player { return pair.Key.(database.Player) }).ToSlice(&d)
-	return d
-}
-
-func (r *orderRoomT) NiuniuRoomData1() *waka.NiuniuRoomData1 {
-	return &waka.NiuniuRoomData1{
-		Id:         r.Id,
-		Option:     r.GetOption(),
-		Creator:    r.Owner.PlayerData().Nickname,
-		Owner:      r.Owner.PlayerData().Nickname,
-		Players:    int32(len(r.Players)),
-		EnterMoney: r.EnterMoney(),
-		LeaveMoney: r.LeaveMoney(),
-		Gaming:     r.Gaming,
+func (r *playerRoomT) NiuniuRoomData() *cow_proto.NiuniuRoomData {
+	return &cow_proto.NiuniuRoomData{
+		Type:      r.Type,
+		RoomId:    r.Id,
+		Option:    r.GetOption(),
+		Creator:   int32(r.Creator),
+		Owner:     int32(r.Owner),
+		Players:   r.Players.NiuniuRoomDataPlayerData(),
+		JoinMoney: r.JoinMoney(),
+		Gaming:    r.Gaming,
 	}
 }
 
-func (r *orderRoomT) NiuniuRoomData2() *waka.NiuniuRoomData2 {
-	return &waka.NiuniuRoomData2{
-		Type:       waka.NiuniuRoomType_Order,
-		Id:         r.Id,
-		Option:     r.GetOption(),
-		Creator:    r.Hall.ToPlayer(r.Owner),
-		Owner:      r.Hall.ToPlayer(r.Owner),
-		Players:    r.Players.NiuniuRoomData2RoomPlayer(),
-		Observers:  r.Hall.ToPlayerMap(r.Observers),
-		EnterMoney: r.EnterMoney(),
-		LeaveMoney: r.LeaveMoney(),
-		Gaming:     r.Gaming,
-	}
-}
-
-func (r *orderRoomT) NiuniuRoundStatus(player database.Player) *waka.NiuniuRoundStatus {
+func (r *playerRoomT) NiuniuRoundStatus(player database.Player) *cow_proto.NiuniuRoundStatus {
 	var pokers []string
-	var players []*waka.NiuniuRoundStatus_RoundPlayer
+	var players []*cow_proto.NiuniuRoundStatus_PlayerData
 	for id, playerData := range r.Players {
-		players = append(players, &waka.NiuniuRoundStatus_RoundPlayer{
+		players = append(players, &cow_proto.NiuniuRoundStatus_PlayerData{
 			Id:              int32(id),
 			Points:          playerData.Round.Points,
 			Grab:            playerData.Round.Grab,
@@ -233,15 +211,16 @@ func (r *orderRoomT) NiuniuRoundStatus(player database.Player) *waka.NiuniuRound
 				pokers = append(pokers, playerData.Round.Pokers4...)
 			}
 			if len(playerData.Round.Pokers1) > 0 &&
-				(r.Step == "require_commit_pokers" || r.Step == "round_clear" || r.Step == "round_finally") {
+				(r.Step == cow_proto.NiuniuRoundStatus_CommitPokers ||
+					r.Step == cow_proto.NiuniuRoundStatus_RoundClear ||
+					r.Step == cow_proto.NiuniuRoundStatus_GameFinally) {
 				pokers = append(pokers, playerData.Round.Pokers1)
 			}
 		}
 	}
 
-	return &waka.NiuniuRoundStatus{
+	return &cow_proto.NiuniuRoundStatus{
 		Step:        r.Step,
-		RoomId:      r.Id,
 		RoundNumber: r.RoundNumber,
 		Players:     players,
 		Banker:      int32(r.Banker),
@@ -249,53 +228,53 @@ func (r *orderRoomT) NiuniuRoundStatus(player database.Player) *waka.NiuniuRound
 	}
 }
 
-func (r *orderRoomT) NiuniuGrabAnimation() *waka.NiuniuGrabAnimation {
-	var players []*waka.NiuniuGrabAnimation_GrabPlayer
+func (r *playerRoomT) NiuniuRequireGrabShow() *cow_proto.NiuniuRequireGrabShow {
+	var players []*cow_proto.NiuniuRequireGrabShow_PlayerData
 	for _, player := range r.Players {
-		players = append(players, &waka.NiuniuGrabAnimation_GrabPlayer{
-			PlayerId: int32(player.Player),
-			Grab:     player.Round.Grab,
+		players = append(players, &cow_proto.NiuniuRequireGrabShow_PlayerData{
+			Player: int32(player.Player),
+			Grab:   player.Round.Grab,
 		})
 	}
-	return &waka.NiuniuGrabAnimation{
+	return &cow_proto.NiuniuRequireGrabShow{
 		Players: players,
 	}
 }
 
-func (r *orderRoomT) NiuniuRoundClear() *waka.NiuniuRoundClear {
-	var players []*waka.NiuniuRoundClear_RoundClearPlayer
+func (r *playerRoomT) NiuniuRoundClear() *cow_proto.NiuniuRoundClear {
+	var players []*cow_proto.NiuniuRoundClear_PlayerData
 	for _, player := range r.Players {
-		players = append(players, &waka.NiuniuRoundClear_RoundClearPlayer{
-			Player:     r.Hall.ToPlayer(player.Player),
+		players = append(players, &cow_proto.NiuniuRoundClear_PlayerData{
+			Player:     int32(player.Player),
+			Points:     player.Round.Points,
 			Type:       player.Round.PokersPattern,
+			Weight:     player.Round.PokersWeight,
 			Rate:       player.Round.PokersRate,
 			ThisPoints: player.Round.PokersPoints,
 			Pokers:     player.Round.CommittedPokers,
-			Points:     player.Round.Points,
-			Weight:     player.Round.PokersWeight,
 		})
 	}
 	sort.Slice(players, func(i, j int) bool {
 		return players[j].Weight < players[i].Weight
 	})
-	return &waka.NiuniuRoundClear{Players: players, FinallyAt: time.Now().Format("2006-01-02 15:04:05")}
+	return &cow_proto.NiuniuRoundClear{Players: players, FinallyAt: time.Now().Format("2006-01-02 15:04:05")}
 }
 
-func (r *orderRoomT) NiuniuRoundFinally() *waka.NiuniuRoundFinally {
-	var players []*waka.NiuniuRoundFinally_RoundFinallyPlayer
+func (r *playerRoomT) NiuniuGameFinally() *cow_proto.NiuniuGameFinally {
+	var players []*cow_proto.NiuniuGameFinally_PlayerData
 	for _, player := range r.Players {
-		players = append(players, &waka.NiuniuRoundFinally_RoundFinallyPlayer{
-			Player:    r.Hall.ToPlayer(player.Player),
+		players = append(players, &cow_proto.NiuniuGameFinally_PlayerData{
+			Player:    int32(player.Player),
 			Points:    int32(player.Round.Points),
 			Victories: player.Round.VictoriousNumber,
 		})
 	}
-	return &waka.NiuniuRoundFinally{Players: players, FinallyAt: time.Now().Format("2006-01-02 15:04:05")}
+	return &cow_proto.NiuniuGameFinally{Players: players, FinallyAt: time.Now().Format("2006-01-02 15:04:05")}
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-func (r *orderRoomT) Loop() {
+func (r *playerRoomT) Loop() {
 	for {
 		if r.loop == nil {
 			return
@@ -306,144 +285,30 @@ func (r *orderRoomT) Loop() {
 	}
 }
 
-func (r *orderRoomT) Tick() {
+func (r *playerRoomT) Tick() {
 	if r.tick != nil {
 		r.tick()
 	}
 }
 
-func (r *orderRoomT) Left(player *playerT) {
-	if !r.Gaming {
-		if _, being := r.Observers[player.Player]; being {
-			delete(r.Observers, player.Player)
-			player.InsideCow = 0
-		} else if roomPlayer, being := r.Players[player.Player]; being {
-			if player.Player == r.Owner {
-			} else {
-				delete(r.Players, player.Player)
-				player.InsideCow = 0
-				r.Seats.Return(roomPlayer.Pos)
-			}
-		}
-	} else {
-		if _, being := r.Observers[player.Player]; being {
-			delete(r.Observers, player.Player)
-			player.InsideCow = 0
-		}
-	}
-
-	r.Hall.sendNiuniuUpdateRoomForAll(r)
-}
-
-func (r *orderRoomT) Recover(player *playerT) {
-	if _, being := r.Players[player.Player]; being {
-		r.Players[player.Player].Round.Sent = false
-	}
-
-	r.Hall.sendNiuniuUpdateRoomForAll(r)
-	if r.Gaming {
-		r.Hall.sendNiuniuUpdateRound(player.Player, r)
-		r.Loop()
-	}
-}
-
-func (r *orderRoomT) CreateRoom(hall *actorT, id int32, option *waka.NiuniuRoomOption, creator database.Player) cowRoom {
-	*r = orderRoomT{
-		Hall:      hall,
-		Id:        id,
-		Option:    option,
-		Owner:     creator,
-		Players:   make(orderPlayerMapT, 5),
-		Observers: map[database.Player]database.Player{},
-		Seats:     tools.NewNumberPool(1, 5, false),
-	}
-
-	pos, _ := r.Seats.Acquire()
-
-	r.Players[creator] = &orderPlayerT{
-		Room:   r,
-		Player: creator,
-		Pos:    pos,
-	}
-
-	if creator.PlayerData().VictoryRate > 0 {
-		r.King = append(r.King, creator)
-	}
-
-	if creator.PlayerData().Money < r.CreateMoney()*100 {
-		r.Hall.sendNiuniuCreateRoomFailed(creator, 1)
-		return nil
-	} else {
-		r.Hall.cowRooms[id] = r
-
-		r.Hall.players[creator].InsideCow = id
-
-		r.Hall.sendNiuniuRoomCreated(creator)
-		r.Hall.sendNiuniuRoomJoined(creator, r)
-		r.Hall.sendNiuniuUpdateRoomForAll(r)
-
-		return r
-	}
-}
-
-func (r *orderRoomT) JoinRoom(player *playerT) {
-	if player.Player.PlayerData().Money < r.EnterMoney()*100 {
-		r.Hall.sendNiuniuJoinRoomFailed(player.Player, 1)
-		return
-	}
-
-	_, being := r.Players[player.Player]
-	if being {
-		r.Hall.sendNiuniuJoinRoomFailed(player.Player, 2)
-		return
-	}
-
-	_, being = r.Observers[player.Player]
-	if being {
-		r.Hall.sendNiuniuJoinRoomFailed(player.Player, 2)
-		return
-	}
-
-	if r.Gaming {
-		r.Observers[player.Player] = player.Player
-	} else {
-		seat, has := r.Seats.Acquire()
-		if !has {
-			r.Observers[player.Player] = player.Player
-		} else {
-			r.Players[player.Player] = &orderPlayerT{
-				Room:   r,
-				Player: player.Player,
-				Pos:    seat,
-			}
-
-			if player.Player.PlayerData().VictoryRate > 0 {
-				r.King = append(r.King, player.Player)
-			}
-		}
-	}
-
-	player.InsideCow = r.GetId()
-
-	r.Hall.sendNiuniuRoomJoined(player.Player, r)
-	r.Hall.sendNiuniuUpdateRoomForAll(r)
-}
-
-func (r *orderRoomT) LeaveRoom(player *playerT) {
-	if _, being := r.Observers[player.Player]; being {
-		player.InsideCow = 0
-		delete(r.Observers, player.Player)
-
-		r.Hall.sendNiuniuRoomLeft(player.Player)
-		r.Hall.sendNiuniuUpdateRoomForAll(r)
-	} else {
+func (r *playerRoomT) Left(player *playerT) {
+	if r.Type == cow_proto.NiuniuRoomType_Order {
 		if !r.Gaming {
 			if roomPlayer, being := r.Players[player.Player]; being {
-				player.InsideCow = 0
+				if player.Player != r.Owner {
+					delete(r.Players, player.Player)
+					player.InsideCow = 0
+					r.Seats.Return(roomPlayer.Pos)
+				}
+				r.Hall.sendNiuniuUpdateRoomForAll(r)
+			}
+		}
+	} else if r.Type == cow_proto.NiuniuRoomType_PayForAnother {
+		if !r.Gaming {
+			if roomPlayer, being := r.Players[player.Player]; being {
 				delete(r.Players, player.Player)
+				player.InsideCow = 0
 				r.Seats.Return(roomPlayer.Pos)
-
-				r.Hall.sendNiuniuRoomLeft(player.Player)
 
 				if r.Owner == player.Player {
 					r.Owner = 0
@@ -455,25 +320,148 @@ func (r *orderRoomT) LeaveRoom(player *playerT) {
 					}
 				}
 
-				if r.Owner == 0 {
-					delete(r.Hall.cowRooms, r.Id)
-					for _, player := range r.Players {
-						r.Hall.players[player.Player].InsideCow = 0
-						r.Hall.sendNiuniuRoomLeft(player.Player)
-					}
-					for _, observer := range r.Observers {
-						r.Hall.players[observer].InsideCow = 0
-						r.Hall.sendNiuniuRoomLeft(observer)
-					}
-				} else {
-					r.Hall.sendNiuniuUpdateRoomForAll(r)
-				}
+				r.Hall.sendNiuniuUpdateRoomForAll(r)
 			}
+		}
+	} else {
+		panic("illegal room type")
+	}
+
+}
+
+func (r *playerRoomT) Recover(player *playerT) {
+	if _, being := r.Players[player.Player]; being {
+		r.Players[player.Player].Round.Sent = false
+	}
+
+	r.Hall.sendNiuniuUpdateRoomForAll(r)
+	if r.Gaming {
+		r.Hall.sendNiuniuUpdateRound(player.Player, r)
+		r.Loop()
+	}
+}
+
+func (r *playerRoomT) CreateRoom(hall *actorT, id int32, roomType cow_proto.NiuniuRoomType, option *cow_proto.NiuniuRoomOption, creator database.Player) {
+	*r = playerRoomT{
+		Hall:    hall,
+		Id:      id,
+		Type:    roomType,
+		Option:  option,
+		Creator: creator,
+		Players: make(playerPlayerMapT, 5),
+		Seats:   tools.NewNumberPool(1, 5, false),
+	}
+
+	if roomType == cow_proto.NiuniuRoomType_Order {
+		pos, _ := r.Seats.Acquire()
+		r.Players[creator] = &playerPlayerT{
+			Room:   r,
+			Player: creator,
+			Pos:    pos,
+		}
+		r.Owner = creator
+	}
+
+	if creator.PlayerData().Money < r.CreateMoney()*100 {
+		r.Hall.sendNiuniuCreateRoomFailed(creator, 1)
+	} else {
+		r.Hall.cowRooms[id] = r
+		r.Hall.sendNiuniuCreateRoomSuccess(creator, r.Id)
+
+		if roomType == cow_proto.NiuniuRoomType_Order {
+			r.Hall.players[creator].InsideCow = id
+			r.Hall.sendNiuniuJoinRoomSuccess(creator)
+			r.Hall.sendNiuniuUpdateRoomForAll(r)
 		}
 	}
 }
 
-func (r *orderRoomT) SwitchReady(player *playerT) {
+func (r *playerRoomT) JoinRoom(player *playerT) {
+	if player.Player.PlayerData().Money < r.JoinMoney()*100 {
+		r.Hall.sendNiuniuJoinRoomFailed(player.Player, 1)
+		return
+	}
+
+	_, being := r.Players[player.Player]
+	if being {
+		r.Hall.sendNiuniuJoinRoomFailed(player.Player, -1)
+		return
+	}
+
+	if r.Gaming {
+		r.Hall.sendNiuniuJoinRoomFailed(player.Player, 2)
+		return
+	}
+
+	seat, has := r.Seats.Acquire()
+	if !has {
+		r.Hall.sendNiuniuJoinRoomFailed(player.Player, 0)
+		return
+	}
+
+	r.Players[player.Player] = &playerPlayerT{
+		Room:   r,
+		Player: player.Player,
+		Pos:    seat,
+	}
+	player.InsideCow = r.Id
+
+	if r.Owner == 0 {
+		r.Owner = player.Player
+	}
+
+	r.Hall.sendNiuniuJoinRoomSuccess(player.Player)
+	r.Hall.sendNiuniuUpdateRoomForAll(r)
+}
+
+func (r *playerRoomT) LeaveRoom(player *playerT) {
+	if r.Type == cow_proto.NiuniuRoomType_Order {
+		if !r.Gaming {
+			if player.Player == r.Owner {
+				delete(r.Hall.cowRooms, r.Id)
+				for _, player := range r.Players {
+					r.Hall.players[player.Player].InsideCow = 0
+					r.Hall.sendNiuniuLeftRoom(player.Player, 2)
+				}
+			} else {
+				if roomPlayer, being := r.Players[player.Player]; being {
+					player.InsideCow = 0
+					delete(r.Players, player.Player)
+					r.Seats.Return(roomPlayer.Pos)
+
+					r.Hall.sendNiuniuLeftRoom(player.Player, 1)
+					r.Hall.sendNiuniuUpdateRoomForAll(r)
+				}
+			}
+		}
+	} else if r.Type == cow_proto.NiuniuRoomType_PayForAnother {
+		if !r.Gaming {
+			if roomPlayer, being := r.Players[player.Player]; being {
+				player.InsideCow = 0
+				delete(r.Players, player.Player)
+				r.Seats.Return(roomPlayer.Pos)
+
+				r.Hall.sendNiuniuLeftRoom(player.Player, 1)
+
+				if r.Owner == player.Player {
+					r.Owner = 0
+					if len(r.Players) > 0 {
+						for _, player := range r.Players {
+							r.Owner = player.Player
+							break
+						}
+					}
+				}
+
+				r.Hall.sendNiuniuUpdateRoomForAll(r)
+			}
+		}
+	} else {
+		panic("illegal room type")
+	}
+}
+
+func (r *playerRoomT) SwitchReady(player *playerT) {
 	if !r.Gaming {
 		if roomPlayer, being := r.Players[player.Player]; being {
 			roomPlayer.Ready = !roomPlayer.Ready
@@ -482,60 +470,20 @@ func (r *orderRoomT) SwitchReady(player *playerT) {
 	}
 }
 
-func (r *orderRoomT) SwitchRole(player *playerT) {
+func (r *playerRoomT) Dismiss(player *playerT) {
 	if !r.Gaming {
-		if roomPlayer, being := r.Players[player.Player]; being {
-			r.Seats.Return(roomPlayer.Pos)
-			delete(r.Players, player.Player)
-			r.Observers[player.Player] = player.Player
-
-			if r.Owner == player.Player {
-				r.Owner = 0
-				if len(r.Players) > 0 {
-					for _, player := range r.Players {
-						r.Owner = player.Player
-						break
-					}
-				}
-			}
-		} else if _, being := r.Observers[player.Player]; being {
-			seat, ok := r.Seats.Acquire()
-			if !ok {
-				return
-			}
-			delete(r.Observers, player.Player)
-			r.Players[player.Player] = &orderPlayerT{
-				Room:   r,
-				Player: player.Player,
-				Pos:    seat,
-			}
-
-			if r.Owner == 0 {
-				r.Owner = player.Player
-			}
-		}
-
-		r.Hall.sendNiuniuUpdateRoomForAll(r)
-	}
-}
-
-func (r *orderRoomT) Dismiss(player *playerT) {
-	if !r.Gaming {
-		if r.Owner == player.Player {
+		if (r.Type == cow_proto.NiuniuRoomType_Order && r.Owner == player.Player) ||
+			(r.Type == cow_proto.NiuniuRoomType_PayForAnother && r.Creator == player.Player) {
 			delete(r.Hall.cowRooms, r.Id)
 			for _, player := range r.Players {
 				r.Hall.players[player.Player].InsideCow = 0
-				r.Hall.sendNiuniuRoomLeftByDismiss(player.Player)
-			}
-			for _, observer := range r.Observers {
-				r.Hall.players[observer].InsideCow = 0
-				r.Hall.sendNiuniuRoomLeftByDismiss(observer)
+				r.Hall.sendNiuniuLeftRoom(player.Player, 2)
 			}
 		}
 	}
 }
 
-func (r *orderRoomT) Start(player *playerT) {
+func (r *playerRoomT) Start(player *playerT) {
 	if !r.Gaming {
 		if r.Owner == player.Player {
 			started := true
@@ -548,47 +496,42 @@ func (r *orderRoomT) Start(player *playerT) {
 				return
 			}
 
-			var playerRoomCost []*database.CowRoomCost
-			if r.Option.IsAA {
+			var costs []*database.CowOrderCostData
+			if r.Type == cow_proto.NiuniuRoomType_Order {
 				for _, player := range r.Players {
-					playerRoomCost = append(playerRoomCost, &database.CowRoomCost{
+					costs = append(costs, &database.CowOrderCostData{
 						Player: player.Player,
-						Number: r.CostMoney() * 100,
+						Number: r.StartMoney() * 100,
 					})
 				}
-			} else {
-				playerRoomCost = append(playerRoomCost, &database.CowRoomCost{
-					Player: r.Owner,
-					Number: r.CostMoney() * 100,
+			} else if r.Type == cow_proto.NiuniuRoomType_PayForAnother {
+				costs = append(costs, &database.CowOrderCostData{
+					Player: r.Creator,
+					Number: r.StartMoney() * 100,
 				})
+			} else {
+				panic("illegal room type")
 			}
-			err := database.CowRoomCostSettle(r.Id, playerRoomCost)
+
+			err := database.CowOrderCostSettle(costs)
 			if err != nil {
 				log.WithFields(logrus.Fields{
-					"room_id": r.Id,
-					"option":  r.Option.String(),
-					"cost":    playerRoomCost,
-					"err":     err,
-				}).Warnln("order cost settle failed")
+					"id":     r.Id,
+					"type":   r.Type,
+					"option": r.Option.String(),
+					"cost":   costs,
+					"err":    err,
+				}).Warnln("cow cost settle failed")
 				return
 			}
 
-			if r.Option.IsAA {
-				for _, player := range r.Players {
-					r.Hall.sendPlayerSecret(player.Player)
-				}
-			} else {
-				r.Hall.sendPlayerSecret(r.Owner)
-			}
-
 			r.loop = r.loopStart
-
 			r.Loop()
 		}
 	}
 }
 
-func (r *orderRoomT) SpecifyBanker(player *playerT, banker database.Player) {
+func (r *playerRoomT) SpecifyBanker(player *playerT, banker database.Player) {
 	if r.Gaming {
 		if _, being := r.Players[banker]; being {
 			r.Banker = banker
@@ -598,7 +541,7 @@ func (r *orderRoomT) SpecifyBanker(player *playerT, banker database.Player) {
 	}
 }
 
-func (r *orderRoomT) Grab(player *playerT, grab bool) {
+func (r *playerRoomT) Grab(player *playerT, grab bool) {
 	if r.Gaming {
 		r.Players[player.Player].Round.Grab = grab
 		r.Players[player.Player].Round.GrabCommitted = true
@@ -609,7 +552,7 @@ func (r *orderRoomT) Grab(player *playerT, grab bool) {
 	}
 }
 
-func (r *orderRoomT) SpecifyRate(player *playerT, rate int32) {
+func (r *playerRoomT) SpecifyRate(player *playerT, rate int32) {
 	if r.Gaming {
 		r.Players[player.Player].Round.Rate = rate
 		r.Players[player.Player].Round.RateCommitted = true
@@ -620,7 +563,7 @@ func (r *orderRoomT) SpecifyRate(player *playerT, rate int32) {
 	}
 }
 
-func (r *orderRoomT) CommitPokers(player *playerT, pokers []string) {
+func (r *playerRoomT) CommitPokers(player *playerT, pokers []string) {
 	if r.Gaming {
 		var origin []string
 		var committed []string
@@ -647,7 +590,7 @@ func (r *orderRoomT) CommitPokers(player *playerT, pokers []string) {
 	}
 }
 
-func (r *orderRoomT) ContinueWith(player *playerT) {
+func (r *playerRoomT) ContinueWith(player *playerT) {
 	if r.Gaming {
 		r.Players[player.Player].Round.ContinueWithCommitted = true
 
@@ -657,26 +600,12 @@ func (r *orderRoomT) ContinueWith(player *playerT) {
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-func (r *orderRoomT) loopStart() bool {
-	var king database.Player
-	for _, k := range r.King {
-		if _, being := r.Players[k]; being {
-			king = k
-			break
-		}
-	}
-	if king != 0 {
-		var players []database.Player
-		linq.From(r.Players).SelectT(func(x linq.KeyValue) database.Player {
-			return x.Key.(database.Player)
-		}).ToSlice(&players)
-		r.Distribution = cow.Distributing(king, players, r.Option.GetGames(), king.PlayerData().VictoryRate, r.Option.GetMode())
-	}
-
+func (r *playerRoomT) loopStart() bool {
 	r.Gaming = true
 	r.RoundNumber = 1
 
-	r.Hall.sendNiuniuStartedForAll(r, r.RoundNumber)
+	r.Hall.sendNiuniuGameStartedForAll(r)
+	r.Hall.sendNiuniuRoundStartedForAll(r, r.RoundNumber)
 
 	if r.Option.Banker == 0 || r.Option.Banker == 1 {
 		r.loop = r.loopSpecifyBanker
@@ -689,8 +618,8 @@ func (r *orderRoomT) loopStart() bool {
 	return true
 }
 
-func (r *orderRoomT) loopSpecifyBanker() bool {
-	r.Step = "require_specify_banker"
+func (r *playerRoomT) loopSpecifyBanker() bool {
+	r.Step = cow_proto.NiuniuRoundStatus_SpecifyBanker
 	for _, player := range r.Players {
 		player.Round.Sent = false
 	}
@@ -698,10 +627,12 @@ func (r *orderRoomT) loopSpecifyBanker() bool {
 	r.Hall.sendNiuniuUpdateRoundForAll(r)
 
 	r.loop = r.loopSpecifyBankerContinue
-	r.tick = buildTickNumber(
+	r.tick = buildTickAfter(
 		8,
-		func(number int32) {
-			r.Hall.sendNiuniuCountdownForAll(r, number)
+		func(deadline int64) {
+			r.Hall.sendNiuniuDeadlineForAll(r, deadline)
+		},
+		func(deadline int64) {
 		},
 		func() {
 			r.Banker = r.Owner
@@ -712,7 +643,7 @@ func (r *orderRoomT) loopSpecifyBanker() bool {
 	return true
 }
 
-func (r *orderRoomT) loopSpecifyBankerContinue() bool {
+func (r *playerRoomT) loopSpecifyBankerContinue() bool {
 	if r.Banker == 0 {
 		for _, player := range r.Players {
 			if !player.Round.Sent {
@@ -734,23 +665,14 @@ func (r *orderRoomT) loopSpecifyBankerContinue() bool {
 	return true
 }
 
-func (r *orderRoomT) loopDeal4(loop func() bool) bool {
-	if r.Distribution == nil {
-		pokers := cow.Acquire5(len(r.Players))
-		i := 0
-		for _, player := range r.Players {
-			pokers := pokers[i]
-			player.Round.Pokers4 = append(player.Round.Pokers4, pokers[:4]...)
-			player.Round.Pokers1 = pokers[4]
-			i++
-		}
-	} else {
-		roundPokers := r.Distribution[r.RoundNumber-1]
-		for _, player := range r.Players {
-			pokers := roundPokers[player.Player]
-			player.Round.Pokers4 = append(player.Round.Pokers4, pokers[:4]...)
-			player.Round.Pokers1 = pokers[4]
-		}
+func (r *playerRoomT) loopDeal4(loop func() bool) bool {
+	pokers := cow.Acquire5(len(r.Players))
+	i := 0
+	for _, player := range r.Players {
+		pokers := pokers[i]
+		player.Round.Pokers4 = append(player.Round.Pokers4, pokers[:4]...)
+		player.Round.Pokers1 = pokers[4]
+		i++
 	}
 
 	for _, player := range r.Players {
@@ -764,8 +686,8 @@ func (r *orderRoomT) loopDeal4(loop func() bool) bool {
 	return true
 }
 
-func (r *orderRoomT) loopGrab() bool {
-	r.Step = "require_grab"
+func (r *playerRoomT) loopGrab() bool {
+	r.Step = cow_proto.NiuniuRoundStatus_Grab
 	for _, player := range r.Players {
 		player.Round.Sent = false
 	}
@@ -773,10 +695,12 @@ func (r *orderRoomT) loopGrab() bool {
 	r.Hall.sendNiuniuUpdateRoundForAll(r)
 
 	r.loop = r.loopGrabContinue
-	r.tick = buildTickNumber(
+	r.tick = buildTickAfter(
 		6,
-		func(number int32) {
-			r.Hall.sendNiuniuCountdownForAll(r, number)
+		func(deadline int64) {
+		},
+		func(deadline int64) {
+			r.Hall.sendNiuniuDeadlineForAll(r, deadline)
 		},
 		func() {
 			for _, player := range r.Players {
@@ -792,7 +716,7 @@ func (r *orderRoomT) loopGrab() bool {
 	return true
 }
 
-func (r *orderRoomT) loopGrabContinue() bool {
+func (r *playerRoomT) loopGrabContinue() bool {
 	finally := true
 	for _, player := range r.Players {
 		if !player.Round.GrabCommitted {
@@ -814,8 +738,8 @@ func (r *orderRoomT) loopGrabContinue() bool {
 	return true
 }
 
-func (r *orderRoomT) loopGrabAnimation() bool {
-	r.Step = "grab_animation"
+func (r *playerRoomT) loopGrabAnimation() bool {
+	r.Step = cow_proto.NiuniuRoundStatus_GrabShow
 	for _, player := range r.Players {
 		player.Round.Sent = false
 		player.Round.ContinueWithCommitted = false
@@ -824,10 +748,12 @@ func (r *orderRoomT) loopGrabAnimation() bool {
 	r.Hall.sendNiuniuUpdateRoundForAll(r)
 
 	r.loop = r.loopGrabAnimationContinue
-	r.tick = buildTickNumber(
+	r.tick = buildTickAfter(
 		8,
-		func(number int32) {
-			r.Hall.sendNiuniuCountdownForAll(r, number)
+		func(deadline int64) {
+			r.Hall.sendNiuniuDeadlineForAll(r, deadline)
+		},
+		func(deadline int64) {
 		},
 		func() {
 			for _, player := range r.Players {
@@ -840,13 +766,13 @@ func (r *orderRoomT) loopGrabAnimation() bool {
 	return true
 }
 
-func (r *orderRoomT) loopGrabAnimationContinue() bool {
+func (r *playerRoomT) loopGrabAnimationContinue() bool {
 	finally := true
 	for _, player := range r.Players {
 		if !player.Round.ContinueWithCommitted {
 			finally = false
 			if !player.Round.Sent {
-				r.Hall.sendNiuniuGrabAnimation(player.Player, r)
+				r.Hall.sendNiuniuRequireGrabShow(player.Player, r)
 				player.Round.Sent = true
 			}
 		}
@@ -862,7 +788,7 @@ func (r *orderRoomT) loopGrabAnimationContinue() bool {
 	return true
 }
 
-func (r *orderRoomT) loopGrabSelect() bool {
+func (r *playerRoomT) loopGrabSelect() bool {
 	var candidates []database.Player
 	for _, player := range r.Players {
 		if player.Round.Grab {
@@ -892,8 +818,8 @@ func (r *orderRoomT) loopGrabSelect() bool {
 	return true
 }
 
-func (r *orderRoomT) loopSpecifyRate() bool {
-	r.Step = "require_specify_rate"
+func (r *playerRoomT) loopSpecifyRate() bool {
+	r.Step = cow_proto.NiuniuRoundStatus_SpecifyRate
 	for _, player := range r.Players {
 		player.Round.Sent = false
 		if player.Player == r.Banker {
@@ -905,10 +831,12 @@ func (r *orderRoomT) loopSpecifyRate() bool {
 	r.Hall.sendNiuniuUpdateRoundForAll(r)
 
 	r.loop = r.loopSpecifyRateContinue
-	r.tick = buildTickNumber(
+	r.tick = buildTickAfter(
 		5,
-		func(number int32) {
-			r.Hall.sendNiuniuCountdownForAll(r, number)
+		func(deadline int64) {
+			r.Hall.sendNiuniuDeadlineForAll(r, deadline)
+		},
+		func(deadline int64) {
 		},
 		func() {
 			for _, player := range r.Players {
@@ -924,7 +852,7 @@ func (r *orderRoomT) loopSpecifyRate() bool {
 	return true
 }
 
-func (r *orderRoomT) loopSpecifyRateContinue() bool {
+func (r *playerRoomT) loopSpecifyRateContinue() bool {
 	finally := true
 	for _, player := range r.Players {
 		if !player.Round.RateCommitted {
@@ -946,8 +874,8 @@ func (r *orderRoomT) loopSpecifyRateContinue() bool {
 	return true
 }
 
-func (r *orderRoomT) loopDeal1() bool {
-	r.Step = "require_commit_pokers"
+func (r *playerRoomT) loopDeal1() bool {
+	r.Step = cow_proto.NiuniuRoundStatus_CommitPokers
 	for _, player := range r.Players {
 		var pokers []string
 		pokers = append(pokers, player.Round.Pokers4...)
@@ -971,10 +899,12 @@ func (r *orderRoomT) loopDeal1() bool {
 	r.Hall.sendNiuniuUpdateRoundForAll(r)
 
 	r.loop = r.loopCommitPokersContinue
-	r.tick = buildTickNumber(
+	r.tick = buildTickAfter(
 		3,
-		func(number int32) {
-			r.Hall.sendNiuniuCountdownForAll(r, number)
+		func(deadline int64) {
+			r.Hall.sendNiuniuDeadlineForAll(r, deadline)
+		},
+		func(deadline int64) {
 		},
 		func() {
 			for _, player := range r.Players {
@@ -987,7 +917,7 @@ func (r *orderRoomT) loopDeal1() bool {
 	return true
 }
 
-func (r *orderRoomT) loopCommitPokersContinue() bool {
+func (r *playerRoomT) loopCommitPokersContinue() bool {
 	finally := true
 	for _, player := range r.Players {
 		if !player.Round.PokersCommitted {
@@ -1011,7 +941,7 @@ func (r *orderRoomT) loopCommitPokersContinue() bool {
 	return true
 }
 
-func (r *orderRoomT) loopSettle() bool {
+func (r *playerRoomT) loopSettle() bool {
 	if r.Players[r.Banker] == nil {
 		for _, player := range r.Players {
 			r.Banker = player.Player
@@ -1021,7 +951,7 @@ func (r *orderRoomT) loopSettle() bool {
 
 	banker := r.Players[r.Banker]
 
-	var players []*orderPlayerT
+	var players []*playerPlayerT
 	for _, player := range r.Players {
 		if player.Player != r.Banker {
 			players = append(players, player)
@@ -1063,8 +993,8 @@ func (r *orderRoomT) loopSettle() bool {
 	return true
 }
 
-func (r *orderRoomT) loopSettleSuccess() bool {
-	r.Step = "round_clear"
+func (r *playerRoomT) loopSettleSuccess() bool {
+	r.Step = cow_proto.NiuniuRoundStatus_RoundClear
 	for _, player := range r.Players {
 		player.Round.Sent = false
 		player.Round.ContinueWithCommitted = false
@@ -1073,9 +1003,11 @@ func (r *orderRoomT) loopSettleSuccess() bool {
 	r.Hall.sendNiuniuUpdateRoundForAll(r)
 
 	r.loop = r.loopSettleSuccessContinue
-	r.tick = buildTickNumber(
+	r.tick = buildTickAfter(
 		8,
-		func(number int32) {
+		func(deadline int64) {
+		},
+		func(deadline int64) {
 		},
 		func() {
 			for _, player := range r.Players {
@@ -1088,13 +1020,12 @@ func (r *orderRoomT) loopSettleSuccess() bool {
 	return true
 }
 
-func (r *orderRoomT) loopSettleSuccessContinue() bool {
+func (r *playerRoomT) loopSettleSuccessContinue() bool {
 	finally := true
 	for _, player := range r.Players {
 		if !player.Round.ContinueWithCommitted {
 			finally = false
 			if !player.Round.Sent {
-				r.Hall.sendNiuniuSettleSuccess(player.Player)
 				r.Hall.sendNiuniuRoundClear(player.Player, r)
 				player.Round.Sent = true
 			}
@@ -1111,7 +1042,7 @@ func (r *orderRoomT) loopSettleSuccessContinue() bool {
 	return true
 }
 
-func (r *orderRoomT) loopSelect() bool {
+func (r *playerRoomT) loopSelect() bool {
 	if r.RoundNumber < r.Option.GetGames() {
 		r.loop = r.loopTransfer
 	} else {
@@ -1120,7 +1051,7 @@ func (r *orderRoomT) loopSelect() bool {
 	return true
 }
 
-func (r *orderRoomT) loopTransfer() bool {
+func (r *playerRoomT) loopTransfer() bool {
 	r.RoundNumber++
 	if r.Option.Banker == 1 {
 		players := r.Players.ToSlice()
@@ -1140,13 +1071,13 @@ func (r *orderRoomT) loopTransfer() bool {
 		r.Banker = 0
 	}
 	for _, player := range r.Players {
-		player.Round = orderRoundPlayerT{
+		player.Round = playerRoundPlayerT{
 			Points:           player.Round.Points,
 			VictoriousNumber: player.Round.VictoriousNumber,
 		}
 	}
 
-	r.Hall.sendNiuniuStartedForAll(r, r.RoundNumber)
+	r.Hall.sendNiuniuRoundStartedForAll(r, r.RoundNumber)
 
 	if r.Option.Banker == 0 || r.Option.Banker == 1 {
 		r.loop = func() bool {
@@ -1161,8 +1092,8 @@ func (r *orderRoomT) loopTransfer() bool {
 	return true
 }
 
-func (r *orderRoomT) loopFinally() bool {
-	r.Step = "round_finally"
+func (r *playerRoomT) loopFinally() bool {
+	r.Step = cow_proto.NiuniuRoundStatus_GameFinally
 	for _, player := range r.Players {
 		player.Round.Sent = false
 		player.Round.ContinueWithCommitted = false
@@ -1171,9 +1102,11 @@ func (r *orderRoomT) loopFinally() bool {
 	r.Hall.sendNiuniuUpdateRoundForAll(r)
 
 	r.loop = r.loopFinallyContinue
-	r.tick = buildTickNumber(
+	r.tick = buildTickAfter(
 		8,
-		func(number int32) {
+		func(deadline int64) {
+		},
+		func(deadline int64) {
 		},
 		func() {
 			for _, player := range r.Players {
@@ -1184,7 +1117,7 @@ func (r *orderRoomT) loopFinally() bool {
 	)
 
 	for _, player := range r.Players {
-		if err := database.CowAddPlayerWarHistory(player.Player, r.Id, r.NiuniuRoundFinally()); err != nil {
+		if err := database.CowAddHistory(player.Player, r.Id, r.Type, r.NiuniuGameFinally()); err != nil {
 			log.WithFields(logrus.Fields{
 				"err": err,
 			}).Warnln("add cow player history failed")
@@ -1194,13 +1127,13 @@ func (r *orderRoomT) loopFinally() bool {
 	return true
 }
 
-func (r *orderRoomT) loopFinallyContinue() bool {
+func (r *playerRoomT) loopFinallyContinue() bool {
 	finally := true
 	for _, player := range r.Players {
 		if !player.Round.ContinueWithCommitted {
 			finally = false
 			if !player.Round.Sent {
-				r.Hall.sendNiuniuRoundFinally(player.Player, r)
+				r.Hall.sendNiuniuGameFinally(player.Player, r)
 				player.Round.Sent = true
 			}
 		}
@@ -1215,44 +1148,63 @@ func (r *orderRoomT) loopFinallyContinue() bool {
 	return true
 }
 
-func (r *orderRoomT) loopClean() bool {
-	r.tick = nil
-	r.loop = nil
-	r.Step = ""
-	r.Banker = 0
-	r.Gaming = false
-
+func (r *playerRoomT) loopClean() bool {
 	for _, player := range r.Players {
-		if r.Hall.players[player.Player].Remote == "" {
+		if playerData := r.Hall.players[player.Player]; playerData == nil || playerData.Remote == "" {
 			if player.Player != r.Owner {
 				delete(r.Players, player.Player)
-				r.Hall.players[player.Player].InsideCow = 0
 				r.Seats.Return(player.Pos)
+				if playerData != nil {
+					playerData.InsideCow = 0
+				}
 			}
 		}
-		if player.Player.PlayerData().Money < r.LeaveMoney()*100 {
-			if player.Player != r.Owner {
-				delete(r.Players, player.Player)
-				r.Hall.players[player.Player].InsideCow = 0
-				r.Seats.Return(player.Pos)
-			} else {
+	}
+	for _, player := range r.Players {
+		if r.Type == cow_proto.NiuniuRoomType_Order {
+			if player.Player.PlayerData().Money < r.JoinMoney()*100 {
+				if player.Player == r.Owner {
+					delete(r.Hall.cowRooms, r.Id)
+					for _, player := range r.Players {
+						if playerData := r.Hall.players[player.Player]; playerData != nil {
+							playerData.InsideCow = 0
+						}
+						r.Hall.sendNiuniuLeftRoom(player.Player, 2)
+					}
+					return false
+				} else {
+					delete(r.Players, player.Player)
+					r.Seats.Return(player.Pos)
+					if playerData := r.Hall.players[player.Player]; playerData != nil {
+						playerData.InsideCow = 0
+					}
+					r.Hall.sendNiuniuLeftRoom(player.Player, 3)
+				}
+			}
+		} else if r.Type == cow_proto.NiuniuRoomType_PayForAnother {
+			if r.Creator.PlayerData().Money < r.CreateMoney()*100 {
 				delete(r.Hall.cowRooms, r.Id)
 				for _, player := range r.Players {
-					r.Hall.players[player.Player].InsideCow = 0
-					r.Hall.sendNiuniuRoomLeft(player.Player)
+					if playerData := r.Hall.players[player.Player]; playerData != nil {
+						playerData.InsideCow = 0
+					}
+					r.Hall.sendNiuniuLeftRoom(player.Player, 3)
 				}
-				for _, observer := range r.Observers {
-					r.Hall.players[observer].InsideCow = 0
-					r.Hall.sendNiuniuRoomLeft(observer)
-				}
+				return false
 			}
 		} else {
 			player.Ready = false
 		}
 	}
 	for _, player := range r.Players {
-		player.Round = orderRoundPlayerT{}
+		player.Round = playerRoundPlayerT{}
 	}
+
+	r.tick = nil
+	r.loop = nil
+	r.Step = cow_proto.NiuniuRoundStatus_Idle
+	r.Banker = 0
+	r.Gaming = false
 
 	r.Hall.sendNiuniuUpdateRoomForAll(r)
 

@@ -5,15 +5,15 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/liuhan907/waka/waka-cow/database"
-	"github.com/liuhan907/waka/waka-cow/proto"
+	waka "github.com/liuhan907/waka/waka-cow/proto"
 	"github.com/liuhan907/waka/waka/modules/supervisor/supervisor_message"
 	"github.com/sirupsen/logrus"
 )
 
 func (my *actorT) playerFutureRequestedLever28(player *playerT, ev *supervisor_message.PlayerFutureRequested) bool {
 	switch evd := ev.Payload.(type) {
-	case *waka.Lever28GetRedPaperBagResultRequest:
-		my.Lever28GetRedPaperBagResultRequest(player, evd, ev.Respond)
+	case *waka.Lever28GetBagClearRequest:
+		my.Lever28GetBagClearRequest(player, evd, ev.Respond)
 	case *waka.Lever28GetHistoryRequest:
 		my.Lever28GetHistoryRequest(player, evd, ev.Respond)
 	default:
@@ -22,8 +22,8 @@ func (my *actorT) playerFutureRequestedLever28(player *playerT, ev *supervisor_m
 	return true
 }
 
-func (my *actorT) Lever28GetRedPaperBagResultRequest(player *playerT,
-	ev *waka.Lever28GetRedPaperBagResultRequest,
+func (my *actorT) Lever28GetBagClearRequest(player *playerT,
+	ev *waka.Lever28GetBagClearRequest,
 	respond func(proto.Message, error)) {
 
 	if player.InsideLever28 == 0 {
@@ -59,9 +59,9 @@ func (my *actorT) Lever28GetRedPaperBagResultRequest(player *playerT,
 	lever28Player.Lookup = true
 	player.InsideLever28 = 0
 
-	respond(&waka.Lever28GetRedPaperBagResultResponse{bag.Lever28RedPaperBag3()}, nil)
+	respond(&waka.Lever28GetBagClearResponse{bag.Lever28BagClear()}, nil)
 
-	my.sendLever28UpdateRedPaperBagList(player.Player, my.lever28Bags)
+	my.sendLever28UpdateBagList(player.Player, my.lever28Bags)
 
 }
 
@@ -69,7 +69,7 @@ func (my *actorT) Lever28GetHistoryRequest(player *playerT,
 	ev *waka.Lever28GetHistoryRequest,
 	respond func(proto.Message, error)) {
 
-	grabs, err := database.Lever28QueryGrabWarHistory(player.Player, 10)
+	grabs, err := database.Lever28QueryGrabHistory(player.Player, 10)
 	if err != nil {
 		log.WithFields(logrus.Fields{
 			"err": err,
@@ -78,7 +78,7 @@ func (my *actorT) Lever28GetHistoryRequest(player *playerT,
 		return
 	}
 
-	hands, err := database.Lever28QueryHandWarHistory(player.Player, 10)
+	hands, err := database.Lever28QueryHandHistory(player.Player, 10)
 	if err != nil {
 		log.WithFields(logrus.Fields{
 			"err": err,

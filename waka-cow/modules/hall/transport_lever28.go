@@ -10,11 +10,11 @@ import (
 
 func (my *actorT) playerTransportedLever28(player *playerT, ev *supervisor_message.PlayerTransported) bool {
 	switch evd := ev.Payload.(type) {
-	case *waka.Lever28CreateRedPaperBag:
-		my.Lever28CreateRedPaperBag(player, evd)
-	case *waka.Lever28Grab:
+	case *cow_proto.Lever28CreateBag:
+		my.Lever28CreateBag(player, evd)
+	case *cow_proto.Lever28Grab:
 		my.Lever28Grab(player, evd)
-	case *waka.Lever28Leave:
+	case *cow_proto.Lever28Leave:
 		my.Lever28Leave(player, evd)
 	default:
 		return false
@@ -22,7 +22,7 @@ func (my *actorT) playerTransportedLever28(player *playerT, ev *supervisor_messa
 	return true
 }
 
-func (my *actorT) Lever28CreateRedPaperBag(player *playerT, ev *waka.Lever28CreateRedPaperBag) {
+func (my *actorT) Lever28CreateBag(player *playerT, ev *cow_proto.Lever28CreateBag) {
 	ev.GetOption().Money *= 100
 
 	id := atomic.AddInt32(&my.lever28IdPool, 1)
@@ -31,7 +31,7 @@ func (my *actorT) Lever28CreateRedPaperBag(player *playerT, ev *waka.Lever28Crea
 	bag.Create(my, id, ev.GetOption(), player.Player)
 }
 
-func (my *actorT) Lever28Grab(player *playerT, ev *waka.Lever28Grab) {
+func (my *actorT) Lever28Grab(player *playerT, ev *cow_proto.Lever28Grab) {
 	bag, being := my.lever28Bags[ev.GetId()]
 	if !being {
 		log.WithFields(logrus.Fields{
@@ -45,6 +45,6 @@ func (my *actorT) Lever28Grab(player *playerT, ev *waka.Lever28Grab) {
 	bag.Grab(player)
 }
 
-func (my *actorT) Lever28Leave(player *playerT, ev *waka.Lever28Leave) {
+func (my *actorT) Lever28Leave(player *playerT, ev *cow_proto.Lever28Leave) {
 	player.InsideLever28 = 0
 }

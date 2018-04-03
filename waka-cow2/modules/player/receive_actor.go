@@ -2,10 +2,10 @@ package player
 
 import (
 	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/liuhan907/waka/waka-cow2/proto"
 	"github.com/sirupsen/logrus"
 
 	"github.com/liuhan907/waka/waka-cow2/database"
+	"github.com/liuhan907/waka/waka-cow2/proto"
 	"github.com/liuhan907/waka/waka/modules/session/session_message"
 )
 

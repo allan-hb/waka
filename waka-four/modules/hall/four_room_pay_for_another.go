@@ -50,9 +50,6 @@ type fourPayForAnotherRoomPlayerRoundT struct {
 	VoteCommitted bool
 	// 投票状态
 	VoteStatus int32
-
-	// 分配的牌
-	PokersPool []map[database.Player][]string
 }
 
 type fourPayForAnotherRoomPlayerT struct {

@@ -99,16 +99,6 @@
             <param name="stream">The stream to copy into a ByteString.</param>
             <returns>A ByteString with content read from the given stream.</returns>
         </member>
-        <member name="M:Google.Protobuf.ByteString.FromStreamAsync(System.IO.Stream,System.Threading.CancellationToken)">
-            <summary>
-            Constructs a <see cref="T:Google.Protobuf.ByteString"/> from data in the given stream, asynchronously.
-            </summary>
-            <remarks>If successful, <paramref name="stream"/> will be read completely, from the position
-            at the start of the call.</remarks>
-            <param name="stream">The stream to copy into a ByteString.</param>
-            <param name="cancellationToken">The cancellation token to use when reading from the stream, if any.</param>
-            <returns>A ByteString with content read from the given stream.</returns>
-        </member>
         <member name="M:Google.Protobuf.ByteString.CopyFrom(System.Byte[])">
             <summary>
             Constructs a <see cref="T:Google.Protobuf.ByteString" /> from the given array. The contents
@@ -1631,40 +1621,16 @@
             (either because it's write-only, or the setter isn't public).
             </summary>
         </member>
-        <member name="T:Google.Protobuf.Compatibility.TypeExtensions">
+        <member name="T:Google.Protobuf.Compatibility.StreamExtensions">
             <summary>
-            Provides extension methods on Type that just proxy to TypeInfo.
-            These are used to support the new type system from .NET 4.5, without
-            having calls to GetTypeInfo all over the place. While the methods here are meant to be
-            broadly compatible with the desktop framework, there are some subtle differences in behaviour - but
-            they're not expected to affect our use cases. While the class is internal, that should be fine: we can
-            evaluate each new use appropriately.
+            Extension methods for <see cref="T:System.IO.Stream"/> in order to provide
+            backwards compatibility with .NET 3.5
             </summary>
         </member>
-        <member name="M:Google.Protobuf.Compatibility.TypeExtensions.IsAssignableFrom(System.Type,System.Type)">
+        <member name="M:Google.Protobuf.Compatibility.StreamExtensions.CopyTo(System.IO.Stream,System.IO.Stream)">
             <summary>
-            See https://msdn.microsoft.com/en-us/library/system.type.isassignablefrom
+            Write the contents of the current stream to the destination stream
             </summary>
-        </member>
-        <member name="M:Google.Protobuf.Compatibility.TypeExtensions.GetProperty(System.Type,System.String)">
-            <summary>
-            Returns a representation of the public property associated with the given name in the given type,
-            including inherited properties or null if there is no such public property.
-            Here, "public property" means a property where either the getter, or the setter, or both, is public.
-            </summary>
-        </member>
-        <member name="M:Google.Protobuf.Compatibility.TypeExtensions.GetMethod(System.Type,System.String)">
-            <summary>
-            Returns a representation of the public method associated with the given name in the given type,
-            including inherited methods.
-            </summary>
-            <remarks>
-            This has a few differences compared with Type.GetMethod in the desktop framework. It will throw
-            if there is an ambiguous match even between a private method and a public one, but it *won't* throw
-            if there are two overloads at different levels in the type hierarchy (e.g. class Base declares public void Foo(int) and
-            class Child : Base declares public void Foo(long)).
-            </remarks>
-            <exception cref="T:System.Reflection.AmbiguousMatchException">One type in the hierarchy declared more than one method with the same name</exception>
         </member>
         <member name="T:Google.Protobuf.FieldCodec">
             <summary>

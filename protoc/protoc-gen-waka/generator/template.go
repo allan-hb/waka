@@ -150,7 +150,7 @@ namespace WakaSDK
         {
             Evq.Clear();
             ThenTable.Clear();
-            Connector.ConnectAsync(host, port);
+            Connector.Connect(host, port);
         }
 
         /// <summary>

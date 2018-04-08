@@ -249,7 +249,7 @@
             <param name="evq">事件队列</param>
             <param name="callback">事件注册器</param>
         </member>
-        <member name="M:CellnetSDK.Socket.Connector.ConnectAsync(System.String,System.Int32)">
+        <member name="M:CellnetSDK.Socket.Connector.Connect(System.String,System.Int32)">
             <summary>
             连接指定地址
             调用函数代表发起一次TCP连接请求

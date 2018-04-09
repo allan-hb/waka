@@ -34,6 +34,12 @@ func (my *actorT) playerTransportedFour(player *playerT, ev *supervisor_message.
 		my.FourSwitchToBackground(player, evd)
 	case *four_proto.FourSwitchToForeground:
 		my.FourSwitchToForeground(player, evd)
+	case *four_proto.FourGrab:
+		my.FourGarb(player, evd)
+	case *four_proto.FourGrabFixedBanker:
+		my.FourGarbOfFixedBanker(player, evd)
+	case *four_proto.FourSetMultiple:
+		my.FourSetMultiple(player, evd)
 	default:
 		return false
 	}
@@ -48,12 +54,13 @@ func (my *actorT) FourCreateRoom(player *playerT, ev *four_proto.FourCreateRoom)
 		my.sendFourCreateRoomFailed(player.Player, 2)
 		return
 	}
-
 	option := ev.Option
 	if (option.GetRounds() != 8 && option.GetRounds() != 16 && option.GetRounds() != 24) ||
 		(option.GetRate() != 1 && option.GetRate() != 2 && option.GetRate() != 3) ||
-		option.GetRuleMode() != 1 ||
-		(option.GetPayMode() != 1 && option.GetPayMode() != 2 && option.GetPayMode() != 3) {
+		(option.GetRuleMode() != 1 && option.GetRuleMode() != 2 && option.GetRuleMode() != 3 && option.GetRuleMode() != 4) ||
+		(option.GetPayMode() != 1 && option.GetPayMode() != 2 && option.GetPayMode() != 3) ||
+		(option.GetNumber() != 2 && option.GetNumber() != 4 && option.GetNumber() != 7 && option.GetNumber() != 8) ||
+		(option.GetCardType() != 1 && option.GetCardType() != 2 && option.GetCardType() != 3) {
 		log.WithFields(logrus.Fields{
 			"player": player.Player,
 		}).Warnln("create four room but option illegal")
@@ -72,14 +79,21 @@ func (my *actorT) FourCreateRoom(player *playerT, ev *four_proto.FourCreateRoom)
 
 	var room fourRoomT
 
-	if option.GetPayMode() == 1 || option.GetPayMode() == 2 {
-		room = new(fourOrderRoomT)
-	} else if option.GetPayMode() == 3 {
-		room = new(fourPayForAnotherRoomT)
+	if option.GetRuleMode() == 1 {
+		room = new(fourNoBankerRoomT)
+		log.WithFields(logrus.Fields{}).Warnln("fourNoBankerRoomT")
+	} else if option.GetRuleMode() == 2 {
+		room = new(fourFixedBankerRoomT)
+		log.WithFields(logrus.Fields{}).Warnln("fourFixedBankerRoomT")
+	} else if option.GetRuleMode() == 3 {
+		room = new(fourCirculationBankerRoomT)
+		log.WithFields(logrus.Fields{}).Warnln("fourCirculationBankerRoomT")
+	} else if option.GetRuleMode() == 4 {
+		room = new(fourGrabBankerRoomT)
+		log.WithFields(logrus.Fields{}).Warnln("fourGrabBankerRoomT")
 	} else {
 		panic("this code should not be executed")
 	}
-
 	room.CreateRoom(my, id, ev.GetOption(), player.Player)
 }
 
@@ -364,4 +378,77 @@ func (my *actorT) FourSwitchToForeground(player *playerT, ev *four_proto.FourSwi
 	} else {
 		my.sendRecover(player.Player, false, "")
 	}
+}
+
+func (my *actorT) FourGarb(player *playerT, ev *four_proto.FourGrab) {
+	if player.InsideFour == 0 {
+		log.WithFields(logrus.Fields{
+			"player": player.Player,
+		}).Warnln("cut but not in room")
+		return
+	}
+
+	room, being := my.fourRooms[player.InsideFour]
+	if !being {
+		log.WithFields(logrus.Fields{
+			"player":  player.Player,
+			"room_id": player.InsideFour,
+		}).Warnln("cut but room not found")
+		player.InsideFour = 0
+		return
+	}
+	if ev.Number != 0 || ev.Number != 1 || ev.Number != 2 || ev.Number != 4 || ev.Number != 8 {
+		log.WithFields(logrus.Fields{
+			"player": player.Player,
+			"Number": ev.Number,
+		}).Warnln("Number is  illegal")
+	}
+	room.FourGrabBanker(player, ev.Doing, ev.Number)
+}
+
+func (my *actorT) FourGarbOfFixedBanker(player *playerT, ev *four_proto.FourGrabFixedBanker) {
+	if player.InsideFour == 0 {
+		log.WithFields(logrus.Fields{
+			"player": player.Player,
+		}).Warnln("cut but not in room")
+		return
+	}
+
+	room, being := my.fourRooms[player.InsideFour]
+	if !being {
+		log.WithFields(logrus.Fields{
+			"player":  player.Player,
+			"room_id": player.InsideFour,
+		}).Warnln("cut but room not found")
+		player.InsideFour = 0
+		return
+	}
+
+	room.FourGrabOfFixedBanker(player, ev.Doing)
+}
+
+func (my *actorT) FourSetMultiple(player *playerT, ev *four_proto.FourSetMultiple) {
+	if player.InsideFour == 0 {
+		log.WithFields(logrus.Fields{
+			"player": player.Player,
+		}).Warnln("cut but not in room")
+		return
+	}
+
+	room, being := my.fourRooms[player.InsideFour]
+	if !being {
+		log.WithFields(logrus.Fields{
+			"player":  player.Player,
+			"room_id": player.InsideFour,
+		}).Warnln("cut but room not found")
+		player.InsideFour = 0
+		return
+	}
+	if ev.Multiple != 1 || ev.Multiple != 2 || ev.Multiple != 3 || ev.Multiple != 5 {
+		log.WithFields(logrus.Fields{
+			"player":   player.Player,
+			"Multiple": ev.Multiple,
+		}).Warnln("Multiple is  illegal")
+	}
+	room.FourSetMultiple(player, ev.Multiple)
 }

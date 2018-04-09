@@ -32,6 +32,7 @@ type fourRoomT interface {
 	FourFinallySettle() *four_proto.FourFinallySettle
 	FourUpdateDismissVoteStatus() (*four_proto.FourUpdateDismissVoteStatus, bool, bool)
 	FourUpdateContinueWithStatus() *four_proto.FourUpdateContinueWithStatus
+	FourGrabAnimation() *four_proto.FourGrabAnimation
 
 	BackendRoom() map[string]interface{}
 
@@ -48,7 +49,9 @@ type fourRoomT interface {
 	CommitPokers(player *playerT, front, behind []string)
 	ContinueWith(player *playerT)
 	SendMessage(player *playerT, messageType int32, text string)
-
+	FourGrabBanker(player *playerT, grab bool, grabTimes int32)
+	FourGrabOfFixedBanker(player *playerT, grab bool)
+	FourSetMultiple(player *playerT, multiple int32)
 	Loop()
 	Tick()
 }

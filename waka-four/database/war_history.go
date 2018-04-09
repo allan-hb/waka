@@ -44,6 +44,11 @@ func FourAddOrderRoomWarHistory(player Player, room int32, finally *four_proto.F
 	return fourAddRoomWarHistory(0, player, room, finally)
 }
 
+// 添加四张约战场战绩
+func FourAddAARoomWarHistory(player Player, room int32, finally *four_proto.FourFinallySettle) (e error) {
+	return fourAddRoomWarHistory(0, player, room, finally)
+}
+
 // 添加四张代开场战绩
 func FourAddPayForAnotherRoomWarHistory(player Player, room int32, finally *four_proto.FourFinallySettle) (e error) {
 	return fourAddRoomWarHistory(1, player, room, finally)

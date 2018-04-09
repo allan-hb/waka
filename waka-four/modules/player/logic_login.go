@@ -89,6 +89,15 @@ func (my *actorT) TokenLogin(ev *four_proto.TokenLogin) {
 		}).Warnln("query player by token failed")
 		my.conn.Tell(&session_message.Send{&four_proto.LoginFailed{0}})
 		return
+	} else {
+		err = database.UpdatePlayerLoginLastAt(player.Id)
+		if err != nil {
+			my.log.WithFields(logrus.Fields{
+				"err": err,
+			}).Warnln("Update player LoginLastAt  failed")
+			my.conn.Tell(&session_message.Send{&four_proto.LoginFailed{0}})
+			return
+		}
 	}
 	if !being {
 		my.log.WithFields(logrus.Fields{
@@ -102,7 +111,6 @@ func (my *actorT) TokenLogin(ev *four_proto.TokenLogin) {
 		}
 
 		my.player = player.Id
-
 		my.hall.Tell(&supervisor_message.PlayerEnter{my.pid, uint64(my.player), my.remote})
 		my.conn.Tell(&session_message.Send{&four_proto.LoginSuccess{ev.GetToken()}})
 

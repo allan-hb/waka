@@ -30,3 +30,4 @@ register_diamonds = 100
 bind_diamonds = 5
 share_diamonds = 10
 min_player_number = 500
+

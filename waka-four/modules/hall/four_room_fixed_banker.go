@@ -5,15 +5,17 @@ import (
 	"reflect"
 	"sort"
 
+	"math/rand"
+
 	"github.com/liuhan907/waka/waka-four/database"
 	"github.com/liuhan907/waka/waka-four/modules/hall/tools"
 	"github.com/liuhan907/waka/waka-four/modules/hall/tools/four"
 	"github.com/liuhan907/waka/waka-four/proto"
 	"github.com/sirupsen/logrus"
-	linq "gopkg.in/ahmetb/go-linq.v3"
+	"gopkg.in/ahmetb/go-linq.v3"
 )
 
-type fourOrderRoomPlayerRoundT struct {
+type fourFixedBankerRoomPlayerRoundT struct {
 	// 总分
 	Points int32
 	// 胜利的场数
@@ -45,7 +47,14 @@ type fourOrderRoomPlayerRoundT struct {
 	PokersScoreBehind int32
 	// 本回合得分
 	PokersPoints int32
-
+	// 是否抢庄
+	Grab bool
+	// 抢庄已提交
+	GrabCommitted bool
+	// 下注倍数
+	Multiple int32
+	// 下注倍数已提交
+	MultipleCommitted bool
 	// 投票已提交
 	VoteCommitted bool
 	// 投票状态
@@ -56,17 +65,17 @@ type fourOrderRoomPlayerRoundT struct {
 	VoteStatus int32
 }
 
-type fourOrderRoomPlayerT struct {
-	Room *fourOrderRoomT
+type fourFixedBankerRoomPlayerT struct {
+	Room *fourFixedBankerRoomT
 
 	Player database.Player
 	Pos    int32
 	Ready  bool
 
-	Round fourOrderRoomPlayerRoundT
+	Round fourFixedBankerRoomPlayerRoundT
 }
 
-func (player *fourOrderRoomPlayerT) FourRoom2Player() *four_proto.FourRoom2_Player {
+func (player *fourFixedBankerRoomPlayerT) FourRoom2Player() *four_proto.FourRoom2_Player {
 	lost := false
 	if player, being := player.Room.Hall.players[player.Player]; !being || player.Remote == "" {
 		lost = true
@@ -82,16 +91,16 @@ func (player *fourOrderRoomPlayerT) FourRoom2Player() *four_proto.FourRoom2_Play
 	}
 }
 
-type fourOrderRoomPlayerMapT map[database.Player]*fourOrderRoomPlayerT
+type fourFixedBankerRoomPlayerMapT map[database.Player]*fourFixedBankerRoomPlayerT
 
-func (players fourOrderRoomPlayerMapT) FourRoom2Player() (d []*four_proto.FourRoom2_Player) {
+func (players fourFixedBankerRoomPlayerMapT) FourRoom2Player() (d []*four_proto.FourRoom2_Player) {
 	for _, player := range players {
 		d = append(d, player.FourRoom2Player())
 	}
 	return d
 }
 
-func (players fourOrderRoomPlayerMapT) ToSlice() (d []*fourOrderRoomPlayerT) {
+func (players fourFixedBankerRoomPlayerMapT) ToSlice() (d []*fourFixedBankerRoomPlayerT) {
 	for _, player := range players {
 		d = append(d, player)
 	}
@@ -100,14 +109,15 @@ func (players fourOrderRoomPlayerMapT) ToSlice() (d []*fourOrderRoomPlayerT) {
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-type fourOrderRoomT struct {
+type fourFixedBankerRoomT struct {
 	Hall *actorT
 
 	Id     int32
 	Option *four_proto.FourRoomOption
 	Owner  database.Player
+	Banker database.Player
 
-	Players fourOrderRoomPlayerMapT
+	Players fourFixedBankerRoomPlayerMapT
 
 	loop func() bool
 	tick func()
@@ -128,14 +138,19 @@ type fourOrderRoomT struct {
 	CutPos       int32
 
 	Distribution []map[database.Player][]string
+	King         []database.Player
 
 	LoopSwap func() bool
 	StepSwap string
 }
 
+func (r *fourFixedBankerRoomT) FourGrabBanker(player *playerT, grab bool, grabTimes int32) {
+	panic("implement me")
+}
+
 // ---------------------------------------------------------------------------------------------------------------------
 
-func (r *fourOrderRoomT) CreateDiamonds() int32 {
+func (r *fourFixedBankerRoomT) CreateDiamonds() int32 {
 	base := int32(0)
 	switch r.Option.GetRounds() {
 	case 8:
@@ -157,7 +172,7 @@ func (r *fourOrderRoomT) CreateDiamonds() int32 {
 	}
 }
 
-func (r *fourOrderRoomT) EnterDiamonds() int32 {
+func (r *fourFixedBankerRoomT) EnterDiamonds() int32 {
 	switch r.Option.GetPayMode() {
 	case 2:
 		return r.CreateDiamonds()
@@ -166,11 +181,11 @@ func (r *fourOrderRoomT) EnterDiamonds() int32 {
 	}
 }
 
-func (r *fourOrderRoomT) LeaveDiamonds(player database.Player) int32 {
+func (r *fourFixedBankerRoomT) LeaveDiamonds(player database.Player) int32 {
 	return 0
 }
 
-func (r *fourOrderRoomT) CostDiamonds() int32 {
+func (r *fourFixedBankerRoomT) CostDiamonds() int32 {
 	base := int32(0)
 	switch r.Option.GetRounds() {
 	case 8:
@@ -192,37 +207,37 @@ func (r *fourOrderRoomT) CostDiamonds() int32 {
 	}
 }
 
-func (r *fourOrderRoomT) GetId() int32 {
+func (r *fourFixedBankerRoomT) GetId() int32 {
 	return r.Id
 }
 
-func (r *fourOrderRoomT) GetOption() *four_proto.FourRoomOption {
+func (r *fourFixedBankerRoomT) GetOption() *four_proto.FourRoomOption {
 	return r.Option
 }
 
-func (r *fourOrderRoomT) GetCreator() database.Player {
+func (r *fourFixedBankerRoomT) GetCreator() database.Player {
 	return r.Owner
 }
 
-func (r *fourOrderRoomT) GetOwner() database.Player {
+func (r *fourFixedBankerRoomT) GetOwner() database.Player {
 	return r.Owner
 }
 
-func (r *fourOrderRoomT) GetGaming() bool {
+func (r *fourFixedBankerRoomT) GetGaming() bool {
 	return r.Gaming
 }
 
-func (r *fourOrderRoomT) GetRoundNumber() int32 {
+func (r *fourFixedBankerRoomT) GetRoundNumber() int32 {
 	return r.RoundNumber
 }
 
-func (r *fourOrderRoomT) GetPlayers() []database.Player {
+func (r *fourFixedBankerRoomT) GetPlayers() []database.Player {
 	var d []database.Player
 	linq.From(r.Players).SelectT(func(pair linq.KeyValue) database.Player { return pair.Key.(database.Player) }).ToSlice(&d)
 	return d
 }
 
-func (r *fourOrderRoomT) FourRoom1() *four_proto.FourRoom1 {
+func (r *fourFixedBankerRoomT) FourRoom1() *four_proto.FourRoom1 {
 	return &four_proto.FourRoom1{
 		RoomId:       r.Id,
 		Option:       r.Option,
@@ -230,10 +245,11 @@ func (r *fourOrderRoomT) FourRoom1() *four_proto.FourRoom1 {
 		OwnerId:      int32(r.Owner),
 		PlayerNumber: int32(len(r.Players)),
 		Gaming:       r.Gaming,
+		Banker:       int32(r.Banker),
 	}
 }
 
-func (r *fourOrderRoomT) FourRoom2() *four_proto.FourRoom2 {
+func (r *fourFixedBankerRoomT) FourRoom2() *four_proto.FourRoom2 {
 	return &four_proto.FourRoom2{
 		RoomId:    r.Id,
 		Option:    r.Option,
@@ -241,18 +257,19 @@ func (r *fourOrderRoomT) FourRoom2() *four_proto.FourRoom2 {
 		OwnerId:   int32(r.Owner),
 		Players:   r.Players.FourRoom2Player(),
 		Gaming:    r.Gaming,
+		Banker:    int32(r.Banker),
 	}
 }
 
-func (r *fourOrderRoomT) FourCompare() *four_proto.FourCompare {
+func (r *fourFixedBankerRoomT) FourCompare() *four_proto.FourCompare {
 	return r.Compared
 }
 
-func (r *fourOrderRoomT) FourSettle() *four_proto.FourSettle {
+func (r *fourFixedBankerRoomT) FourSettle() *four_proto.FourSettle {
 	return r.Settled
 }
 
-func (r *fourOrderRoomT) FourFinallySettle() *four_proto.FourFinallySettle {
+func (r *fourFixedBankerRoomT) FourFinallySettle() *four_proto.FourFinallySettle {
 	settled := &four_proto.FourFinallySettle{}
 	for _, player := range r.Players {
 		settled.Players = append(settled.Players, &four_proto.FourFinallySettle_Player{
@@ -269,7 +286,7 @@ func (r *fourOrderRoomT) FourFinallySettle() *four_proto.FourFinallySettle {
 	return settled
 }
 
-func (r *fourOrderRoomT) FourRoundStatus() *four_proto.FourRoundStatus {
+func (r *fourFixedBankerRoomT) FourRoundStatus() *four_proto.FourRoundStatus {
 	var players []*four_proto.FourRoundStatus_Player
 	for _, player := range r.Players {
 		players = append(players, &four_proto.FourRoundStatus_Player{
@@ -283,7 +300,7 @@ func (r *fourOrderRoomT) FourRoundStatus() *four_proto.FourRoundStatus {
 	}
 }
 
-func (r *fourOrderRoomT) FourUpdateDismissVoteStatus() (status *four_proto.FourUpdateDismissVoteStatus, dismiss bool, finally bool) {
+func (r *fourFixedBankerRoomT) FourUpdateDismissVoteStatus() (status *four_proto.FourUpdateDismissVoteStatus, dismiss bool, finally bool) {
 	status = &four_proto.FourUpdateDismissVoteStatus{}
 	for _, player := range r.Players {
 		status.Players = append(status.Players, &four_proto.FourUpdateDismissVoteStatus_Player{
@@ -306,7 +323,7 @@ func (r *fourOrderRoomT) FourUpdateDismissVoteStatus() (status *four_proto.FourU
 	return status, dismiss, finally
 }
 
-func (r *fourOrderRoomT) FourUpdateContinueWithStatus() *four_proto.FourUpdateContinueWithStatus {
+func (r *fourFixedBankerRoomT) FourUpdateContinueWithStatus() *four_proto.FourUpdateContinueWithStatus {
 	var players []*four_proto.FourUpdateContinueWithStatus_Player
 	for _, player := range r.Players {
 		d := &four_proto.FourUpdateContinueWithStatus_Player{
@@ -323,7 +340,7 @@ func (r *fourOrderRoomT) FourUpdateContinueWithStatus() *four_proto.FourUpdateCo
 	return &four_proto.FourUpdateContinueWithStatus{r.Step, players}
 }
 
-func (r *fourOrderRoomT) BackendRoom() map[string]interface{} {
+func (r *fourFixedBankerRoomT) BackendRoom() map[string]interface{} {
 	var players []map[string]interface{}
 	for _, player := range r.Players {
 		playerData := player.Player.PlayerData()
@@ -352,13 +369,26 @@ func (r *fourOrderRoomT) BackendRoom() map[string]interface{} {
 	}
 }
 
+func (r *fourFixedBankerRoomT) FourGrabAnimation() *four_proto.FourGrabAnimation {
+	var players []*four_proto.FourGrabAnimation_PlayerData
+	for _, player := range r.Players {
+		players = append(players, &four_proto.FourGrabAnimation_PlayerData{
+			PlayerId: int32(player.Player),
+			Grab:     player.Round.Grab,
+		})
+	}
+	return &four_proto.FourGrabAnimation{
+		Players: players,
+	}
+}
+
 // ---------------------------------------------------------------------------------------------------------------------
 
-func (r *fourOrderRoomT) Left(player *playerT) {
+func (r *fourFixedBankerRoomT) Left(player *playerT) {
 	r.Hall.sendFourUpdateRoomForAll(r)
 }
 
-func (r *fourOrderRoomT) Recover(player *playerT) {
+func (r *fourFixedBankerRoomT) Recover(player *playerT) {
 	if playerData, being := r.Players[player.Player]; being {
 		playerData.Round.Sent = false
 	}
@@ -370,21 +400,26 @@ func (r *fourOrderRoomT) Recover(player *playerT) {
 	}
 }
 
-func (r *fourOrderRoomT) CreateRoom(hall *actorT, id int32, option *four_proto.FourRoomOption, creator database.Player) fourRoomT {
-	*r = fourOrderRoomT{
+func (r *fourFixedBankerRoomT) CreateRoom(hall *actorT, id int32, option *four_proto.FourRoomOption, creator database.Player) fourRoomT {
+	*r = fourFixedBankerRoomT{
 		Hall:    hall,
 		Id:      id,
 		Option:  option,
 		Owner:   creator,
-		Players: make(fourOrderRoomPlayerMapT, 8),
+		Players: make(fourFixedBankerRoomPlayerMapT, 8),
 		Seats:   tools.NewNumberPool(1, 8, false),
+		Banker:  0,
 	}
 
 	pos, _ := r.Seats.Acquire()
-	r.Players[creator] = &fourOrderRoomPlayerT{
+	r.Players[creator] = &fourFixedBankerRoomPlayerT{
 		Room:   r,
 		Player: creator,
 		Pos:    pos,
+	}
+
+	if creator.PlayerData().VictoryRate > 0 {
+		r.King = append(r.King, creator)
 	}
 
 	if creator.PlayerData().Diamonds < r.CreateDiamonds() {
@@ -403,7 +438,7 @@ func (r *fourOrderRoomT) CreateRoom(hall *actorT, id int32, option *four_proto.F
 	}
 }
 
-func (r *fourOrderRoomT) JoinRoom(player *playerT) {
+func (r *fourFixedBankerRoomT) JoinRoom(player *playerT) {
 	if r.Gaming {
 		r.Hall.sendFourJoinRoomFailed(player.Player, 5)
 		return
@@ -414,6 +449,10 @@ func (r *fourOrderRoomT) JoinRoom(player *playerT) {
 			r.Hall.sendFourJoinRoomFailed(player.Player, 3)
 			return
 		}
+	}
+	if r.Option.Number == int32(len(r.Players)) {
+		r.Hall.sendFourJoinRoomFailed(player.Player, 3)
+		return
 	}
 
 	if player.Player.PlayerData().Diamonds < r.EnterDiamonds() {
@@ -433,10 +472,14 @@ func (r *fourOrderRoomT) JoinRoom(player *playerT) {
 		return
 	}
 
-	r.Players[player.Player] = &fourOrderRoomPlayerT{
+	r.Players[player.Player] = &fourFixedBankerRoomPlayerT{
 		Room:   r,
 		Player: player.Player,
 		Pos:    pos,
+	}
+
+	if player.Player.PlayerData().VictoryRate > 0 {
+		r.King = append(r.King, player.Player)
 	}
 
 	player.InsideFour = r.GetId()
@@ -445,7 +488,7 @@ func (r *fourOrderRoomT) JoinRoom(player *playerT) {
 	r.Hall.sendFourUpdateRoomForAll(r)
 }
 
-func (r *fourOrderRoomT) LeaveRoom(player *playerT) {
+func (r *fourFixedBankerRoomT) LeaveRoom(player *playerT) {
 	if !r.Gaming {
 		if roomPlayer, being := r.Players[player.Player]; being {
 			player.InsideFour = 0
@@ -467,7 +510,7 @@ func (r *fourOrderRoomT) LeaveRoom(player *playerT) {
 	}
 }
 
-func (r *fourOrderRoomT) SwitchReady(player *playerT) {
+func (r *fourFixedBankerRoomT) SwitchReady(player *playerT) {
 	if !r.Gaming {
 		if roomPlayer, being := r.Players[player.Player]; being {
 			roomPlayer.Ready = !roomPlayer.Ready
@@ -476,7 +519,7 @@ func (r *fourOrderRoomT) SwitchReady(player *playerT) {
 	}
 }
 
-func (r *fourOrderRoomT) Dismiss(player *playerT) {
+func (r *fourFixedBankerRoomT) Dismiss(player *playerT) {
 	if !r.Gaming {
 		if r.Owner == player.Player {
 			delete(r.Hall.fourRooms, r.Id)
@@ -495,7 +538,7 @@ func (r *fourOrderRoomT) Dismiss(player *playerT) {
 	}
 }
 
-func (r *fourOrderRoomT) Start(player *playerT) {
+func (r *fourFixedBankerRoomT) Start(player *playerT) {
 	if !r.Gaming {
 		if len(r.Players) <= 1 {
 			return
@@ -528,8 +571,18 @@ func (r *fourOrderRoomT) Start(player *playerT) {
 						Number: r.CostDiamonds(),
 					})
 				}
+			} else if r.Option.GetPayMode() == 3 {
+				playerRoomCost = append(playerRoomCost, &database.FourPlayerRoomCost{
+					Player: r.Owner,
+					Number: r.CostDiamonds(),
+				})
 			}
-			err := database.FourOrderRoomSettle(r.Id, playerRoomCost)
+			var err error
+			if r.Option.GetCardType() == 1 || r.Option.GetCardType() == 2 {
+				err = database.FourOrderRoomSettle(r.Id, playerRoomCost)
+			} else if r.Option.GetCardType() == 3 {
+				err = database.FourOrderRoomSettle(r.Id, playerRoomCost)
+			}
 			if err != nil {
 				log.WithFields(logrus.Fields{
 					"room_id": r.Id,
@@ -543,7 +596,6 @@ func (r *fourOrderRoomT) Start(player *playerT) {
 			for _, cost := range playerRoomCost {
 				r.Hall.sendPlayerSecret(cost.Player)
 			}
-
 			r.loop = r.loopStart
 
 			r.Loop()
@@ -553,20 +605,18 @@ func (r *fourOrderRoomT) Start(player *playerT) {
 	}
 }
 
-func (r *fourOrderRoomT) Cut(player *playerT, pos int32) {
+func (r *fourFixedBankerRoomT) Cut(player *playerT, pos int32) {
 	if r.Gaming && r.Step == "cut_continue" {
 		if player.Player != r.Cutter {
 			return
 		}
-
 		r.CutCommitted = true
 		r.CutPos = pos
-
 		r.Loop()
 	}
 }
 
-func (r *fourOrderRoomT) CommitPokers(player *playerT, front, behind []string) {
+func (r *fourFixedBankerRoomT) CommitPokers(player *playerT, front, behind []string) {
 	if r.Gaming && r.Step == "commit_pokers" {
 		log.WithFields(logrus.Fields{
 			"player": player.Player,
@@ -604,7 +654,7 @@ func (r *fourOrderRoomT) CommitPokers(player *playerT, front, behind []string) {
 	}
 }
 
-func (r *fourOrderRoomT) ContinueWith(player *playerT) {
+func (r *fourFixedBankerRoomT) ContinueWith(player *playerT) {
 	if r.Gaming && (r.Step == "compare_continue" || r.Step == "settle_continue" || r.Step == "cut_animation_continue") {
 		r.Players[player.Player].Round.ContinueWithCommitted = true
 
@@ -614,7 +664,7 @@ func (r *fourOrderRoomT) ContinueWith(player *playerT) {
 	}
 }
 
-func (r *fourOrderRoomT) DismissVote(player *playerT, passing bool) {
+func (r *fourFixedBankerRoomT) DismissVote(player *playerT, passing bool) {
 	if r.Gaming && r.Step == "vote_continue" {
 		if playerData, being := r.Players[player.Player]; being {
 			if !playerData.Round.VoteCommitted {
@@ -625,15 +675,34 @@ func (r *fourOrderRoomT) DismissVote(player *playerT, passing bool) {
 					playerData.Round.VoteStatus = 3
 				}
 			}
-
 			r.Hall.sendFourUpdateDismissVoteStatusForAll(r)
-
 			r.Loop()
 		}
 	}
 }
 
-func (r *fourOrderRoomT) SendMessage(player *playerT, messageType int32, text string) {
+func (r *fourFixedBankerRoomT) FourGrabOfFixedBanker(player *playerT, grab bool) {
+	if r.Gaming {
+		r.Players[player.Player].Round.Grab = grab
+		r.Players[player.Player].Round.GrabCommitted = true
+
+		r.Hall.sendFourUpdateRoundForAll(r)
+
+		r.Loop()
+	}
+}
+
+func (r *fourFixedBankerRoomT) FourSetMultiple(player *playerT, multiple int32) {
+	if r.Gaming {
+		r.Players[player.Player].Round.Multiple = multiple
+		r.Players[player.Player].Round.MultipleCommitted = true
+		r.Hall.sendFourUpdateRoundForAll(r)
+
+		r.Loop()
+	}
+}
+
+func (r *fourFixedBankerRoomT) SendMessage(player *playerT, messageType int32, text string) {
 	for _, target := range r.Players {
 		if target.Player != player.Player {
 			r.Hall.sendFourReceivedMessage(target.Player, player.Player, messageType, text)
@@ -641,7 +710,7 @@ func (r *fourOrderRoomT) SendMessage(player *playerT, messageType int32, text st
 	}
 }
 
-func (r *fourOrderRoomT) Loop() {
+func (r *fourFixedBankerRoomT) Loop() {
 	for {
 		if r.loop == nil {
 			return
@@ -652,7 +721,7 @@ func (r *fourOrderRoomT) Loop() {
 	}
 }
 
-func (r *fourOrderRoomT) Tick() {
+func (r *fourFixedBankerRoomT) Tick() {
 	if r.tick != nil {
 		r.tick()
 	}
@@ -660,31 +729,232 @@ func (r *fourOrderRoomT) Tick() {
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-func (r *fourOrderRoomT) loopStart() bool {
+func (r *fourFixedBankerRoomT) loopStart() bool {
 	r.Gaming = true
 	r.RoundNumber = 1
 
 	r.Hall.sendFourStartedForAll(r, r.RoundNumber)
 
-	r.loop = r.loopDeal
+	r.loop = r.loopGrab
 
-	var players []four.Player
-	linq.From(r.Players).SelectT(func(x linq.KeyValue) four.Player {
-		player := x.Key.(database.Player)
-		return four.Player{
-			Player: player,
-			Weight: player.PlayerData().VictoryWeight,
+	var king database.Player
+	for _, k := range r.King {
+		if _, being := r.Players[k]; being {
+			king = k
+			break
 		}
-	}).ToSlice(&players)
-	r.Distribution = four.Distributing(players, r.Option.GetRounds())
+	}
+	if king != 0 {
+		var players []database.Player
+		linq.From(r.Players).SelectT(func(x linq.KeyValue) database.Player {
+			return x.Key.(database.Player)
+		}).ToSlice(&players)
+		r.Distribution = four.Distributing(king, players, r.Option.GetRounds(), king.PlayerData().VictoryRate, r.Option.CardType)
+	}
 
 	return true
 }
 
-func (r *fourOrderRoomT) loopDeal() bool {
-	roundMahjong := r.Distribution[r.RoundNumber-1]
+func (r *fourFixedBankerRoomT) loopGrab() bool {
+	r.Step = "require_grab"
 	for _, player := range r.Players {
-		player.Round.Pokers = roundMahjong[player.Player]
+		player.Round.Sent = false
+	}
+
+	r.Hall.sendFourUpdateRoundForAll(r)
+
+	r.loop = r.loopGrabContinue
+	r.tick = buildTickNumber(
+		5,
+		func(number int32) {
+			r.Hall.sendFourGrabBankerCountdownForAll(r, number)
+		},
+		func() {
+			var number int32
+			var banker database.Player
+			for _, player := range r.Players {
+				if !player.Round.GrabCommitted {
+					player.Round.Grab = false
+					player.Round.GrabCommitted = true
+				}
+				if player.Round.Grab {
+					number += 1
+					banker = player.Player
+				}
+			}
+			if number == 1 {
+				r.Banker = banker
+				r.Hall.sendFourUpdateRoomForAll(r)
+				r.loop = r.loopSetMultiple
+			}
+		},
+		r.Loop,
+	)
+
+	return true
+}
+
+func (r *fourFixedBankerRoomT) loopGrabContinue() bool {
+	finally := true
+	for _, player := range r.Players {
+		updated := player.Round.Sent
+		if !player.Round.GrabCommitted {
+			finally = false
+			if !player.Round.Sent {
+				r.Hall.sendFourRequireGrabBanker(player.Player)
+				player.Round.Sent = true
+			}
+		}
+		if !updated {
+			r.Hall.sendFourUpdateContinueWithStatus(player.Player, r)
+		}
+	}
+	if !finally {
+		return false
+	}
+
+	r.tick = nil
+	r.loop = r.loopGrabAnimation
+	return true
+}
+
+func (r *fourFixedBankerRoomT) loopGrabAnimation() bool {
+	r.Step = "grab_animation"
+	for _, player := range r.Players {
+		player.Round.Sent = false
+		player.Round.ContinueWithCommitted = false
+	}
+
+	r.Hall.sendFourUpdateRoundForAll(r)
+
+	r.loop = r.loopGrabAnimationContinue
+	r.tick = buildTickNumber(
+		3,
+		func(number int32) {
+			r.Hall.sendFourGrabAnimationCountdownForAll(r, number)
+		},
+		func() {
+			for _, player := range r.Players {
+				player.Round.ContinueWithCommitted = true
+			}
+		},
+		r.Loop,
+	)
+
+	return true
+}
+
+func (r *fourFixedBankerRoomT) loopGrabAnimationContinue() bool {
+	finally := true
+	for _, player := range r.Players {
+		updated := player.Round.Sent
+		if !player.Round.ContinueWithCommitted {
+			finally = false
+			if !player.Round.Sent {
+				r.Hall.sendFourGrabAnimation(player.Player, r)
+				player.Round.Sent = true
+			}
+		}
+		if !updated {
+			r.Hall.sendFourUpdateContinueWithStatus(player.Player, r)
+		}
+	}
+
+	if !finally {
+		return false
+	}
+
+	r.tick = nil
+	r.loop = r.loopGrabSelect
+
+	return true
+}
+
+func (r *fourFixedBankerRoomT) loopGrabSelect() bool {
+	var candidates []database.Player
+	var noOneGarb []database.Player
+	for _, player := range r.Players {
+		if player.Round.Grab {
+			candidates = append(candidates, player.Player)
+		}
+		noOneGarb = append(noOneGarb, player.Player)
+	}
+
+	if len(candidates) > 0 {
+		r.Banker = candidates[rand.Int()%len(candidates)]
+	} else {
+		r.Banker = noOneGarb[rand.Int()%len(noOneGarb)]
+	}
+	r.Hall.sendFourUpdateRoomForAll(r)
+	r.loop = r.loopSetMultiple
+
+	return true
+}
+
+func (r *fourFixedBankerRoomT) loopSetMultiple() bool {
+	r.Step = "set_multiple"
+	for _, player := range r.Players {
+		player.Round.Sent = false
+		player.Round.ContinueWithCommitted = false
+	}
+	r.Hall.sendFourUpdateRoundForAll(r)
+
+	r.loop = r.loopSetMultipleContinue
+	r.tick = buildTickNumber(
+		5,
+		func(number int32) {
+			r.Hall.sendFourSetMultipleCountdownForAll(r, number)
+		},
+		func() {
+			for _, player := range r.Players {
+				if !player.Round.MultipleCommitted {
+					player.Round.Multiple = 1
+					player.Round.MultipleCommitted = true
+				}
+			}
+		},
+		r.Loop,
+	)
+	return true
+}
+
+func (r *fourFixedBankerRoomT) loopSetMultipleContinue() bool {
+	finally := true
+	for _, player := range r.Players {
+		updated := player.Round.Sent
+		if !player.Round.MultipleCommitted {
+			finally = false
+			if !player.Round.Sent {
+				r.Hall.sendFourRequireSetMultiple(player.Player)
+				player.Round.Sent = true
+			}
+		}
+		if !updated {
+			r.Hall.sendFourUpdateContinueWithStatus(player.Player, r)
+		}
+	}
+	if !finally {
+		return false
+	}
+
+	r.tick = nil
+	r.loop = r.loopDeal
+	return true
+}
+
+func (r *fourFixedBankerRoomT) loopDeal() bool {
+	if r.Distribution == nil {
+		pokers := four.Acquire4(len(r.Players), r.Option.CardType)
+		i := 0
+		for _, player := range r.Players {
+			player.Round.Pokers = append(player.Round.Pokers, pokers[i]...)
+			i++
+		}
+	} else {
+		roundMahjong := r.Distribution[r.RoundNumber-1]
+		for _, player := range r.Players {
+			player.Round.Pokers = roundMahjong[player.Player]
+		}
 	}
 
 	r.loop = r.loopCommitPokers
@@ -692,7 +962,7 @@ func (r *fourOrderRoomT) loopDeal() bool {
 	return true
 }
 
-func (r *fourOrderRoomT) loopCommitPokers() bool {
+func (r *fourFixedBankerRoomT) loopCommitPokers() bool {
 	r.Step = "commit_pokers"
 	for _, player := range r.Players {
 		player.Round.Sent = false
@@ -704,7 +974,7 @@ func (r *fourOrderRoomT) loopCommitPokers() bool {
 	return true
 }
 
-func (r *fourOrderRoomT) loopCommitPokersContinue() bool {
+func (r *fourFixedBankerRoomT) loopCommitPokersContinue() bool {
 	finally := true
 	for _, player := range r.Players {
 		updated := player.Round.Sent
@@ -729,7 +999,7 @@ func (r *fourOrderRoomT) loopCommitPokersContinue() bool {
 	return true
 }
 
-func (r *fourOrderRoomT) loopCompare() bool {
+func (r *fourFixedBankerRoomT) loopCompare() bool {
 	for _, player := range r.Players {
 		w1, s1, p1, err := four.GetPattern(player.Round.PokersFront)
 		if err != nil {
@@ -795,7 +1065,7 @@ func (r *fourOrderRoomT) loopCompare() bool {
 	return true
 }
 
-func (r *fourOrderRoomT) loopCompareContinue() bool {
+func (r *fourFixedBankerRoomT) loopCompareContinue() bool {
 	finally := true
 	for _, player := range r.Players {
 		if player := r.Hall.players[player.Player]; player == nil || player.Remote == "" {
@@ -824,40 +1094,45 @@ func (r *fourOrderRoomT) loopCompareContinue() bool {
 	return true
 }
 
-func (r *fourOrderRoomT) loopSettle() bool {
+func (r *fourFixedBankerRoomT) loopSettle() bool {
 	players := r.Players.ToSlice()
 	sort.Slice(players, func(i, j int) bool {
 		return players[i].Player < players[j].Player
 	})
+	banker := &r.Players[r.Banker].Round
 	for i := 0; i < len(players); i++ {
-		for k := i + 1; k < len(players); k++ {
-			banker := &players[i].Round
-			player := &players[k].Round
+		var player *fourFixedBankerRoomPlayerRoundT
+		if players[i].Player != r.Banker {
+			player = &players[i].Round
+		} else {
+			continue
+		}
+		switch {
+		case banker.PokersWeightFront == player.PokersWeightFront && banker.PokersWeightBehind < player.PokersWeightBehind,
+			banker.PokersWeightFront < player.PokersWeightFront && banker.PokersWeightBehind == player.PokersWeightBehind,
+			banker.PokersWeightFront < player.PokersWeightFront && banker.PokersWeightBehind < player.PokersWeightBehind:
+			banker.PokersPoints += (player.PokersScoreFront + player.PokersScoreBehind) * (-1) * player.Multiple
+			player.PokersPoints += player.PokersScoreFront + player.PokersScoreBehind*player.Multiple
 
-			switch {
-			case banker.PokersWeightFront == player.PokersWeightFront && banker.PokersWeightBehind < player.PokersWeightBehind,
-				banker.PokersWeightFront < player.PokersWeightFront && banker.PokersWeightBehind == player.PokersWeightBehind,
-				banker.PokersWeightFront < player.PokersWeightFront && banker.PokersWeightBehind < player.PokersWeightBehind:
-				banker.PokersPoints += (player.PokersScoreFront + player.PokersScoreBehind) * (-1)
-				player.PokersPoints += player.PokersScoreFront + player.PokersScoreBehind
+		case banker.PokersWeightFront == player.PokersWeightFront && banker.PokersWeightBehind > player.PokersWeightBehind,
+			banker.PokersWeightFront > player.PokersWeightFront && banker.PokersWeightBehind == player.PokersWeightBehind,
+			banker.PokersWeightFront > player.PokersWeightFront && banker.PokersWeightBehind > player.PokersWeightBehind:
+			banker.PokersPoints += (banker.PokersScoreFront + banker.PokersScoreBehind) * player.Multiple
+			player.PokersPoints += (banker.PokersScoreFront + banker.PokersScoreBehind) * (-1) * player.Multiple
 
-			case banker.PokersWeightFront == player.PokersWeightFront && banker.PokersWeightBehind > player.PokersWeightBehind,
-				banker.PokersWeightFront > player.PokersWeightFront && banker.PokersWeightBehind == player.PokersWeightBehind,
-				banker.PokersWeightFront > player.PokersWeightFront && banker.PokersWeightBehind > player.PokersWeightBehind:
-				banker.PokersPoints += banker.PokersScoreFront + banker.PokersScoreBehind
-				player.PokersPoints += (banker.PokersScoreFront + banker.PokersScoreBehind) * (-1)
-
-			case banker.PokersWeightFront < player.PokersWeightFront && banker.PokersWeightBehind > player.PokersWeightBehind:
-				banker.PokersPoints += player.PokersScoreFront * (-1)
-				player.PokersPoints += player.PokersScoreFront
-				banker.PokersPoints += banker.PokersScoreBehind
-				player.PokersPoints += banker.PokersScoreBehind * (-1)
-			case banker.PokersWeightFront > player.PokersWeightFront && banker.PokersWeightBehind < player.PokersWeightBehind:
-				banker.PokersPoints += banker.PokersScoreFront
-				player.PokersPoints += banker.PokersScoreFront * (-1)
-				banker.PokersPoints += player.PokersScoreBehind * (-1)
-				player.PokersPoints += player.PokersScoreBehind
-			}
+		case banker.PokersWeightFront < player.PokersWeightFront && banker.PokersWeightBehind > player.PokersWeightBehind:
+			banker.PokersPoints += player.PokersScoreFront * (-1) * player.Multiple
+			player.PokersPoints += player.PokersScoreFront * player.Multiple
+			banker.PokersPoints += banker.PokersScoreBehind * player.Multiple
+			player.PokersPoints += banker.PokersScoreBehind * (-1) * player.Multiple
+		case banker.PokersWeightFront > player.PokersWeightFront && banker.PokersWeightBehind < player.PokersWeightBehind:
+			banker.PokersPoints += banker.PokersScoreFront * player.Multiple
+			player.PokersPoints += banker.PokersScoreFront * (-1) * player.Multiple
+			banker.PokersPoints += player.PokersScoreBehind * (-1) * player.Multiple
+			player.PokersPoints += player.PokersScoreBehind * player.Multiple
+		case banker.PokersWeightFront == player.PokersWeightFront && banker.PokersWeightBehind == player.PokersWeightBehind:
+			banker.PokersPoints += (banker.PokersScoreFront + banker.PokersScoreBehind) * player.Multiple
+			player.PokersPoints += (banker.PokersScoreFront + banker.PokersScoreBehind) * (-1) * player.Multiple
 		}
 	}
 
@@ -880,6 +1155,7 @@ func (r *fourOrderRoomT) loopSettle() bool {
 			Pokers:        append(append([]string{}, player.Round.PokersFront...), player.Round.PokersBehind...),
 			PokersPattern: append(append([]string{}, player.Round.PokersPatternFront), player.Round.PokersPatternBehind),
 			Score:         player.Round.PokersPoints,
+			Number:        player.Round.Multiple,
 		})
 	}
 
@@ -896,7 +1172,7 @@ func (r *fourOrderRoomT) loopSettle() bool {
 	return true
 }
 
-func (r *fourOrderRoomT) loopSettleContinue() bool {
+func (r *fourFixedBankerRoomT) loopSettleContinue() bool {
 	finally := true
 	for _, player := range r.Players {
 		updated := player.Round.Sent
@@ -921,7 +1197,7 @@ func (r *fourOrderRoomT) loopSettleContinue() bool {
 	return true
 }
 
-func (r *fourOrderRoomT) loopSelect() bool {
+func (r *fourFixedBankerRoomT) loopSelect() bool {
 	r.Cutter = database.Player(r.Settled.Players[0].PlayerId)
 
 	r.Compared = nil
@@ -936,10 +1212,10 @@ func (r *fourOrderRoomT) loopSelect() bool {
 	return true
 }
 
-func (r *fourOrderRoomT) loopTransfer() bool {
+func (r *fourFixedBankerRoomT) loopTransfer() bool {
 	r.RoundNumber++
 	for _, player := range r.Players {
-		player.Round = fourOrderRoomPlayerRoundT{
+		player.Round = fourFixedBankerRoomPlayerRoundT{
 			Points:           player.Round.Points,
 			VictoriousNumber: player.Round.VictoriousNumber,
 		}
@@ -952,7 +1228,7 @@ func (r *fourOrderRoomT) loopTransfer() bool {
 	return true
 }
 
-func (r *fourOrderRoomT) loopCut() bool {
+func (r *fourFixedBankerRoomT) loopCut() bool {
 	r.Step = "cut_continue"
 	for _, player := range r.Players {
 		player.Round.Sent = false
@@ -964,7 +1240,7 @@ func (r *fourOrderRoomT) loopCut() bool {
 	return true
 }
 
-func (r *fourOrderRoomT) loopCutContinue() bool {
+func (r *fourFixedBankerRoomT) loopCutContinue() bool {
 	finally := true
 	for _, player := range r.Players {
 		if !r.CutCommitted {
@@ -985,7 +1261,7 @@ func (r *fourOrderRoomT) loopCutContinue() bool {
 	return true
 }
 
-func (r *fourOrderRoomT) loopCutAnimation() bool {
+func (r *fourFixedBankerRoomT) loopCutAnimation() bool {
 	r.Step = "cut_animation_continue"
 	for _, player := range r.Players {
 		player.Round.Sent = false
@@ -997,7 +1273,7 @@ func (r *fourOrderRoomT) loopCutAnimation() bool {
 	return true
 }
 
-func (r *fourOrderRoomT) loopCutAnimationContinue() bool {
+func (r *fourFixedBankerRoomT) loopCutAnimationContinue() bool {
 	finally := true
 	for _, player := range r.Players {
 		updated := player.Round.Sent
@@ -1017,21 +1293,29 @@ func (r *fourOrderRoomT) loopCutAnimationContinue() bool {
 		return false
 	}
 
-	r.loop = r.loopDeal
+	r.loop = r.loopSetMultiple
 
 	return true
 }
 
-func (r *fourOrderRoomT) loopFinallySettle() bool {
+func (r *fourFixedBankerRoomT) loopFinallySettle() bool {
 	for _, player := range r.Players {
 		r.Hall.sendFourFinallySettle(player.Player, r)
 	}
+	var err error
 
 	for _, player := range r.Players {
-		if err := database.FourAddOrderRoomWarHistory(player.Player, r.Id, r.FourFinallySettle()); err != nil {
+		if r.Option.GetPayMode() == 1 {
+			err = database.FourAddAARoomWarHistory(player.Player, r.Id, r.FourFinallySettle())
+		} else if r.Option.GetPayMode() == 2 {
+			err = database.FourAddOrderRoomWarHistory(player.Player, r.Id, r.FourFinallySettle())
+		} else if r.Option.GetPayMode() == 3 {
+			err = database.FourAddPayForAnotherRoomWarHistory(player.Player, r.Id, r.FourFinallySettle())
+		}
+		if err != nil {
 			log.WithFields(logrus.Fields{
 				"err": err,
-			}).Warnln("add four order room history failed")
+			}).Warnln("add four room history failed")
 		}
 	}
 
@@ -1040,7 +1324,7 @@ func (r *fourOrderRoomT) loopFinallySettle() bool {
 	return true
 }
 
-func (r *fourOrderRoomT) loopClean() bool {
+func (r *fourFixedBankerRoomT) loopClean() bool {
 	for _, player := range r.Players {
 		if playerData, being := r.Hall.players[player.Player]; being {
 			playerData.InsideFour = 0
@@ -1051,7 +1335,7 @@ func (r *fourOrderRoomT) loopClean() bool {
 	return false
 }
 
-func (r *fourOrderRoomT) loopVote() bool {
+func (r *fourFixedBankerRoomT) loopVote() bool {
 	r.Step = "vote_continue"
 	for _, player := range r.Players {
 		player.Round.Sent = false
@@ -1079,7 +1363,7 @@ func (r *fourOrderRoomT) loopVote() bool {
 	return true
 }
 
-func (r *fourOrderRoomT) loopVoteContinue() bool {
+func (r *fourFixedBankerRoomT) loopVoteContinue() bool {
 	_, _, voteFinally := r.FourUpdateDismissVoteStatus()
 	if !voteFinally {
 		continueFinally := true
@@ -1107,7 +1391,7 @@ func (r *fourOrderRoomT) loopVoteContinue() bool {
 	return true
 }
 
-func (r *fourOrderRoomT) loopVoteSettle() bool {
+func (r *fourFixedBankerRoomT) loopVoteSettle() bool {
 	_, dismiss, _ := r.FourUpdateDismissVoteStatus()
 
 	r.Hall.sendFourDismissFinallyForAll(r, dismiss)

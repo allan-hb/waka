@@ -109,3 +109,54 @@ func FourPayForAnotherRoomSettle(room int32, player *FourPlayerRoomCost) error {
 
 	return nil
 }
+
+// 四张约战房间场费结算
+func FourAARoomSettle(room int32, players []*FourPlayerRoomCost) error {
+	var changed []Player
+	var modifies []*modifyDiamondsAction
+
+	for i := range players {
+		player := players[i]
+
+		modifies = append(modifies, &modifyDiamondsAction{
+			Player: player.Player,
+			Number: player.Number * (-1),
+			After: func(ts *gorm.DB, self *modifyDiamondsAction) error {
+				consume := &FourOrderRoomPurchaseHistory{
+					Player:    player.Player,
+					Room:      room,
+					Number:    player.Number,
+					CreatedAt: time.Now(),
+				}
+				if err := ts.Create(consume).Error; err != nil {
+					return err
+				}
+				return nil
+			},
+		})
+		changed = append(changed, player.Player)
+	}
+
+	ts := mysql.Begin()
+
+	err := applyModifyDiamondsAction(ts, modifies)
+	if err != nil {
+		ts.Rollback()
+		return err
+	}
+
+	ts.Commit()
+
+	playersLock.Lock()
+	for _, player := range changed {
+		playerData, being := playersByPlayer[player]
+		if being {
+			delete(playersByPlayer, player)
+			delete(playersByUnionID, playerData.UnionId)
+			delete(playersByToken, playerData.Token)
+		}
+	}
+	playersLock.Unlock()
+
+	return nil
+}

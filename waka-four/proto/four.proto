@@ -505,10 +505,26 @@ message FourDismissVoteCountdown {
     int32 number = 1;
 }
 
-// @comments 要求选择庄家
+// @comments 要求抢庄
 // @receive
 message FourRequireGrabBanker{}
 
+
+// @comments 定庄房间抢庄
+// @post
+message FourGrabFixedBanker {
+    // 是否抢庄
+    bool doing = 1;
+}
+
+// @comments 明牌房间抢庄
+// @post
+message FourGrab{
+    // 是否抢庄
+    bool doing = 1;
+    // 选择抢庄倍数
+    int32 number =2 ;
+}
 
 // @comments 抢庄家倒计时
 // @receiveb
@@ -527,13 +543,30 @@ message FourGrabAnimation {
         // 是否抢庄
         bool grab = 2;
     }
-
     repeated PlayerData players = 1;
 }
 
 // @comments 抢庄动画倒计时
 // @receiveb
 message FourGrabAnimationCountdown {
+    // 倒计时
+    int32 number = 1;
+}
+
+// @comments 闲家选择倍数
+// @post
+message FourSetMultiple{
+    // 选择倍数
+    int32 multiple =1 ;
+}
+
+// @comments 要求闲家设置倍数
+// @receive
+message FourRequireSetMultiple{}
+
+// @comments 现价设置倍数倒计时
+// @receiveb
+message FourSetMultipleCountdown {
     // 倒计时
     int32 number = 1;
 }
@@ -706,6 +739,8 @@ message FourSettle {
         repeated string pokers_pattern = 3;
         // 得分
         int32 score = 4;
+        // 下注倍数
+        int32 number = 5;
     }
 
     // 玩家结算数据
@@ -755,7 +790,10 @@ message FourUpdateContinueWithStatus {
     // cut_continue             切牌
     // cut_animation_continue   切牌动画确认
     // vote_continue            投票确认
-    string step = 1;
+    // require_grab             请求抢庄
+    // grab_animation           抢庄动画
+    // set_multiple             闲家设置倍数
+     string step = 1;
     // 详细结果
     repeated Player players = 2;
 }

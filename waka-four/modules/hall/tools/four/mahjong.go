@@ -68,7 +68,7 @@ var (
 
 	Poker = []string{
 		"character_6",
-		"dot_2", "dot_2", "dot_4_1", "dot_4_2", "dot_6_1", "dot_6_2", "dot_7_1", "dot_7_2", "dot_8_1", "dot_8_2",
+		"dot_2_1", "dot_2_1", "dot_4_1", "dot_4_2", "dot_6_1", "dot_6_2", "dot_7_1", "dot_7_2", "dot_8_1", "dot_8_2",
 		"bamboo_3", "bamboo_4_1", "bamboo_4_2", "bamboo_5_1", "bamboo_5_2", "bamboo_6_1", "bamboo_6_2", "bamboo_7_1", "bamboo_7_2", "bamboo_8_1", "bamboo_8_2", "bamboo_9_1", "bamboo_9_2",
 		"red_1", "red_2",
 		"green_1", "green_2",
@@ -78,21 +78,53 @@ var (
 	MahjongName = map[string]string{
 		"character_6": "六万",
 		"dot_2":       "二筒",
+		"dot_2_1":     "二筒",
+		"dot_2_2":     "二筒",
 		"dot_4":       "四筒",
+		"dot_4_1":     "四筒",
+		"dot_4_2":     "四筒",
 		"dot_6":       "六筒",
+		"dot_6_1":     "六筒",
+		"dot_6_2":     "六筒",
 		"dot_7":       "七筒",
+		"dot_7_1":     "七筒",
+		"dot_7_2":     "七筒",
 		"dot_8":       "八筒",
+		"dot_8_1":     "八筒",
+		"dot_8_2":     "八筒",
 		"bamboo_3":    "三条",
+		"bamboo_3_1":  "三条",
+		"bamboo_3_2":  "三条",
 		"bamboo_4":    "四条",
+		"bamboo_4_1":  "四条",
+		"bamboo_4_2":  "四条",
 		"bamboo_5":    "五条",
+		"bamboo_5_1":  "五条",
+		"bamboo_5_2":  "五条",
 		"bamboo_6":    "六条",
+		"bamboo_6_1":  "六条",
+		"bamboo_6_2":  "六条",
 		"bamboo_7":    "七条",
+		"bamboo_7_1":  "七条",
+		"bamboo_7_2":  "七条",
 		"bamboo_8":    "八条",
+		"bamboo_8_1":  "八条",
+		"bamboo_8_2":  "八条",
 		"bamboo_9":    "九条",
+		"bamboo_9_1":  "九条",
+		"bamboo_9_2":  "九条",
 		"red":         "红中",
+		"red_1":       "红中",
+		"red_2":       "红中",
 		"green":       "发",
+		"green_1":     "发",
+		"green_2":     "发",
 		"east":        "东风",
+		"east_1":      "东风",
+		"east_2":      "东风",
 		"white":       "白板",
+		"white_1":     "白板",
+		"white_2":     "白板",
 	}
 
 	MahjongWeight = map[string]int32{
@@ -190,10 +222,10 @@ func Acquire4(group int, cardType int32) [][]string {
 		copy(pool, Mahjong)
 	} else if cardType == 2 {
 		pool = make([]string, len(Poker))
-		copy(pool, Mahjong)
+		copy(pool, Poker)
 	} else if cardType == 3 {
 		pool = make([]string, len(PaiGow))
-		copy(pool, Mahjong)
+		copy(pool, PaiGow)
 	}
 	devLock.Lock()
 	dev.Shuffle(len(pool), func(i, j int) {

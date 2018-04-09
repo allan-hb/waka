@@ -796,11 +796,22 @@ func (r *fourGrabBankerRoomT) loopGrab() bool {
 			r.Hall.sendFourGrabBankerCountdownForAll(r, number)
 		},
 		func() {
+			var number int32
+			var banker database.Player
 			for _, player := range r.Players {
 				if !player.Round.GrabCommitted {
 					player.Round.Grab = false
 					player.Round.GrabCommitted = true
 				}
+				if player.Round.Grab {
+					number += 1
+					banker = player.Player
+				}
+			}
+			if number == 1 {
+				r.Banker = banker
+				r.Hall.sendFourUpdateRoomForAll(r)
+				r.loop = r.loopSetMultiple
 			}
 		},
 		r.Loop,
@@ -921,8 +932,10 @@ func (r *fourGrabBankerRoomT) loopSetMultiple() bool {
 		},
 		func() {
 			for _, player := range r.Players {
-				player.Round.Multiple = 1
-				player.Round.MultipleCommitted = true
+				if !player.Round.MultipleCommitted {
+					player.Round.Multiple = 1
+					player.Round.MultipleCommitted = true
+				}
 			}
 		},
 		r.Loop,
@@ -1147,6 +1160,7 @@ func (r *fourGrabBankerRoomT) loopSettle() bool {
 			Pokers:        append(append([]string{}, player.Round.PokersFront...), player.Round.PokersBehind...),
 			PokersPattern: append(append([]string{}, player.Round.PokersPatternFront), player.Round.PokersPatternBehind),
 			Score:         player.Round.PokersPoints,
+			Number:        player.Round.Multiple,
 		})
 	}
 

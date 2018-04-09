@@ -771,7 +771,10 @@ func (r *fourCirculationBankerRoomT) loopSetMultiple() bool {
 		},
 		func() {
 			for _, player := range r.Players {
-				player.Round.Multiple = 1
+				if !player.Round.MultipleCommitted {
+					player.Round.Multiple = 1
+					player.Round.MultipleCommitted = true
+				}
 			}
 		},
 		r.Loop,
@@ -1015,6 +1018,7 @@ func (r *fourCirculationBankerRoomT) loopSettle() bool {
 			Pokers:        append(append([]string{}, player.Round.PokersFront...), player.Round.PokersBehind...),
 			PokersPattern: append(append([]string{}, player.Round.PokersPatternFront), player.Round.PokersPatternBehind),
 			Score:         player.Round.PokersPoints,
+			Number:        player.Round.Multiple,
 		})
 	}
 
@@ -1101,7 +1105,7 @@ A:
 	r.Hall.sendFourUpdateRoomForAll(r)
 	r.Hall.sendFourStartedForAll(r, r.RoundNumber)
 
-	r.loop = r.loopCut
+	r.loop = r.loopSetMultiple
 
 	return true
 }

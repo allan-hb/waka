@@ -776,7 +776,7 @@ func (r *fourGrabBankerRoomT) loopDeal() bool {
 		}
 	}
 
-	r.loop = r.loopCommitPokers
+	r.loop = r.loopGrab
 
 	return true
 }

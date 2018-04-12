@@ -827,6 +827,7 @@ func (r *fourGrabBankerRoomT) loopGrabContinue() bool {
 			finally = false
 			if !player.Round.Sent {
 				r.Hall.sendFourRequireGrabBanker(player.Player)
+				r.Hall.sendFourDeal(player.Player, player.Round.Pokers)
 				player.Round.Sent = true
 			}
 		}
@@ -849,7 +850,6 @@ func (r *fourGrabBankerRoomT) loopGrabAnimation() bool {
 	}
 
 	r.Hall.sendFourUpdateRoundForAll(r)
-
 	r.loop = r.loopGrabAnimationContinue
 	r.tick = buildTickNumber(
 		3,
@@ -986,7 +986,7 @@ func (r *fourGrabBankerRoomT) loopCommitPokersContinue() bool {
 		if !player.Round.PokersCommitted {
 			finally = false
 			if !player.Round.Sent {
-				r.Hall.sendFourDeal(player.Player, player.Round.Pokers)
+				//r.Hall.sendFourDeal(player.Player, player.Round.Pokers)
 				player.Round.Sent = true
 			}
 		}

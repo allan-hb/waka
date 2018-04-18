@@ -43,11 +43,11 @@ namespace WakaSDK
         }
         {{end}}
 
-        static private bool DispatchTransport(ISession ses, uint id, IMessage msg, byte[] rawData)
+        static private void DispatchTransport(ISession ses, uint id, IMessage msg, byte[] rawData)
         {
             if (Dispatcher == null)
             {
-                return true;
+                return;
             }
             var transport = (WakaProto.Transport)msg;
             if (!MetaTable.TryGetMessageMetaByID(transport.Id, out MessageMeta meta))
@@ -59,12 +59,13 @@ namespace WakaSDK
             {
                 {{range .Receive}}
                 case "{{$.Namespace}}.{{.Type}}":
-                    return Dispatcher.Event{{.Type}}(({{$.Namespace}}.{{.Type}})message);
+                    Dispatcher.Event{{.Type}}(({{$.Namespace}}.{{.Type}})message);
+                    break;
                 {{end}}
                 default:
                     break;
             }
-            return true;
+            return;
         }
     }
 }
@@ -100,7 +101,7 @@ namespace WakaSDK
         /// <summary>
 {{.LeadingComments}}
         /// </summary>
-        bool Event{{.Type}}({{$.Namespace}}.{{.Type}} ev);
+        void Event{{.Type}}({{$.Namespace}}.{{.Type}} ev);
         {{end}}
     }
 }
@@ -202,7 +203,7 @@ namespace WakaSDK
             Dispatcher?.Closed();
         }
 
-        static private bool RedirectFutureResponse(ISession ses, uint id, IMessage message, byte[] rawData)
+        static private void RedirectFutureResponse(ISession ses, uint id, IMessage message, byte[] rawData)
         {
             var response = (WakaProto.FutureResponse)message;
             if (ThenTable.TryGetValue(response.Number, out Action<string, object> andThen))
@@ -222,18 +223,17 @@ namespace WakaSDK
                     andThen("failed: unknown response type", null);
                 }
             }
-            return true;
+            return;
         }
 
-        static private bool RedirectTransport(ISession ses, uint id, IMessage message, byte[] rawData)
+        static private void RedirectTransport(ISession ses, uint id, IMessage message, byte[] rawData)
         {
-            return DispatchTransport(ses, id, message, rawData);
+            DispatchTransport(ses, id, message, rawData);
         }
 
-        static private bool RedirectHeart(ISession ses, uint id, IMessage message, byte[] rawData)
+        static private void RedirectHeart(ISession ses, uint id, IMessage message, byte[] rawData)
         {
             LastRemoteHeartTime = DateTime.UtcNow;
-            return true;
         }
 
         static private WakaProto.FutureRequest BuildFutureRequest(IMessage request)

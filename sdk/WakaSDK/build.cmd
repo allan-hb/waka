@@ -39,6 +39,9 @@ copy WakaSDK\bin\Release\Google.Protobuf.pdb Release /Y
 copy WakaSDK\bin\Release\WakaSDK.dll Release\WakaSDK.dll /Y
 copy WakaSDK\bin\Release\WakaSDK.pdb Release\WakaSDK.pdb /Y
 copy WakaSDK\bin\Release\WakaSDK.xml Release\WakaSDK.xml /Y
+copy WakaSDK\bin\Release\UnitySocket.dll Release\UnitySocket.dll /Y
+copy WakaSDK\bin\Release\UnitySocket.pdb Release\UnitySocket.pdb /Y
+copy WakaSDK\bin\Release\UnitySocket.xml Release\UnitySocket.xml /Y
 
 rd /s /q WakaSDK\bin
 rd /s /q WakaSDK\obj

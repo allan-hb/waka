@@ -1,0 +1,148 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>UnitySocket</name>
+    </assembly>
+    <members>
+        <member name="T:UnitySocket.MessageEventArgs">
+            <summary>
+            消息事件参数
+            </summary>
+        </member>
+        <member name="M:UnitySocket.MessageEventArgs.#ctor(System.UInt32,System.Byte[])">
+            <summary>
+            创建一个新实例
+            </summary>
+            <param name="id">消息ID</param>
+            <param name="rawData">数据</param>
+        </member>
+        <member name="F:UnitySocket.MessageEventArgs.ID">
+            <summary>
+            消息ID
+            </summary>
+        </member>
+        <member name="F:UnitySocket.MessageEventArgs.RawData">
+            <summary>
+            消息数据
+            </summary>
+        </member>
+        <member name="T:UnitySocket.ErrorEventArgs">
+            <summary>
+            错误事件参数
+            </summary>
+        </member>
+        <member name="M:UnitySocket.ErrorEventArgs.#ctor(System.String,System.Exception)">
+            <summary>
+            创建一个新实例
+            </summary>
+            <param name="message">错误消息</param>
+            <param name="exception">异常</param>
+        </member>
+        <member name="F:UnitySocket.ErrorEventArgs.Message">
+            <summary>
+            错误信息
+            </summary>
+        </member>
+        <member name="F:UnitySocket.ErrorEventArgs.Exception">
+            <summary>
+            异常
+            </summary>
+        </member>
+        <member name="T:UnitySocket.CloseEventArgs">
+            <summary>
+            关闭事件参数
+            </summary>
+        </member>
+        <member name="M:UnitySocket.CloseEventArgs.#ctor(System.String)">
+            <summary>
+            创建一个新实例
+            </summary>
+            <param name="reason">原因</param>
+        </member>
+        <member name="F:UnitySocket.CloseEventArgs.Reason">
+            <summary>
+            原因
+            </summary>
+        </member>
+        <member name="T:UnitySocket.System.Collections.Concurrent.BlockingQueue`1">
+            <summary>
+            阻塞队列
+            </summary>
+        </member>
+        <member name="P:UnitySocket.System.Collections.Concurrent.BlockingQueue`1.Count">
+            <summary>
+            队列元素个数
+            </summary>
+        </member>
+        <member name="M:UnitySocket.System.Collections.Concurrent.BlockingQueue`1.Enqueue(`0)">
+            <summary>
+            将一个元素加入队列
+            </summary>
+            <param name="item"></param>
+        </member>
+        <member name="M:UnitySocket.System.Collections.Concurrent.BlockingQueue`1.Dequeue">
+            <summary>
+            从队列中获取一个元素，这个函数将不会立即返回，直到可以获取一个元素
+            </summary>
+            <returns>获取的元素</returns>
+        </member>
+        <member name="M:UnitySocket.System.Collections.Concurrent.BlockingQueue`1.TryDequeue(`0@,System.Int32)">
+            <summary>
+            尝试从队列中获取一个元素，这个函数不会立即返回，直到可以获取一个元素或者超时
+            </summary>
+            <param name="value">获取的元素</param>
+            <param name="millisecondsTimeout">超时</param>
+            <returns>是否获取成功</returns>
+        </member>
+        <member name="M:UnitySocket.System.Collections.Concurrent.BlockingQueue`1.Clear">
+            <summary>
+            清空队列
+            </summary>
+        </member>
+        <member name="T:UnitySocket.Socket">
+            <summary>
+            Socket
+            </summary>
+        </member>
+        <member name="F:UnitySocket.Socket.OnOpen">
+            <summary>
+            此事件在Socket连接建立成功时发生
+            </summary>
+        </member>
+        <member name="F:UnitySocket.Socket.OnMessage">
+            <summary>
+            此事件在Socket上有数据到达时发生
+            </summary>
+        </member>
+        <member name="F:UnitySocket.Socket.OnError">
+            <summary>
+            此事件在Socket上有错误发生时发生
+            </summary>
+        </member>
+        <member name="F:UnitySocket.Socket.OnClose">
+            <summary>
+            此事件在Socket关闭时发生
+            </summary>
+        </member>
+        <member name="M:UnitySocket.Socket.Connect(System.String,System.Int32)">
+            <summary>
+            连接
+            </summary>
+            <param name="host">主机地址</param>
+            <param name="port">端口</param>
+        </member>
+        <member name="M:UnitySocket.Socket.SendAsync(System.UInt32,System.Byte[],System.Action)">
+            <summary>
+            发送数据
+            </summary>
+            <param name="id">消息ID</param>
+            <param name="buffer">消息数据</param>
+            <param name="completed">完成回调</param>
+        </member>
+        <member name="M:UnitySocket.Socket.Close">
+            <summary>
+            关闭连接
+            </summary>
+        </member>
+    </members>
+</doc>

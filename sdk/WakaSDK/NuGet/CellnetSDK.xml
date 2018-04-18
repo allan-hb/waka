@@ -37,7 +37,7 @@
             <param name="callback">处理函数</param>
             <returns>注册器</returns>
         </member>
-        <member name="M:CellnetSDK.Callback.RegisterMessage(System.Type,System.Func{CellnetSDK.ISession,System.UInt32,Google.Protobuf.IMessage,System.Byte[],System.Boolean})">
+        <member name="M:CellnetSDK.Callback.RegisterMessage(System.Type,System.Action{CellnetSDK.ISession,System.UInt32,Google.Protobuf.IMessage,System.Byte[]})">
             <summary>
             注册消息事件
             </summary>
@@ -135,7 +135,7 @@
             事件队列
             </summary>
         </member>
-        <member name="M:CellnetSDK.EventQueue.Post(System.Func{System.Boolean})">
+        <member name="M:CellnetSDK.EventQueue.Post(System.Action)">
             <summary>
             投递一个委托到队列中
             </summary>

@@ -163,6 +163,7 @@ namespace WakaSDK
         static public void Close()
         {
             Session?.Close();
+            Evq.Clear();
             Session = null;
         }
 
